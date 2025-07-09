@@ -1,6 +1,8 @@
+# .gitignore の中身
 venv/
+venv311_fixed/
 __pycache__/
 *.pyc
-.env
 *.db
+.env
 .DS_Store
