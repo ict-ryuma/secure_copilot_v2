@@ -2,8 +2,10 @@ import sqlite3
 import hashlib
 from typing import Tuple
 import streamlit as st
+import os
 
-DB_PATH = "backend/user_db.db"
+# === 修正ポイント: 実行ファイルからの相対パスを絶対パスに変換 ===
+DB_PATH = os.path.join(os.path.dirname(__file__), "user_db.db")
 
 # --- パスワードハッシュ化 ---
 def hash_password(password: str) -> str:
