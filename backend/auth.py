@@ -1,10 +1,10 @@
 import sqlite3
 import hashlib
-from typing import Tuple
+from typing import Tuple, List
 import streamlit as st
 import os
 
-# === 修正ポイント: 実行ファイルからの相対パスを絶対パスに変換 ===
+# === 修正済: 絶対パスで user_db.db を参照 ===
 DB_PATH = os.path.join(os.path.dirname(__file__), "user_db.db")
 
 # --- パスワードハッシュ化 ---
@@ -57,7 +57,7 @@ def create_team_table():
     conn.close()
 
 # --- チーム一覧取得（セレクトボックス用） ---
-def get_all_teams() -> list[str]:
+def get_all_teams() -> List[str]:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM teams")
