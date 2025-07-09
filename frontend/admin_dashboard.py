@@ -12,9 +12,11 @@ from dotenv import load_dotenv
 from backend.auth import get_current_user, register_user, get_all_teams, login_user
 from backend.prompt_loader import get_prompts_for_team
 
-PROMPT_PATH = os.path.join(Path(__file__).resolve().parents[1], "backend", "prompt_config.yaml")
-VISION_PATH = os.path.join(Path(__file__).resolve().parents[1], "team_knowledge", "company.yaml")
-DB_PATH = "backend/user_db.db"
+# --- 安定動作のためのフルパス指定 ---
+BASE_DIR = Path(__file__).resolve().parents[1]
+PROMPT_PATH = os.path.join(BASE_DIR, "backend", "prompt_config.yaml")
+VISION_PATH = os.path.join(BASE_DIR, "team_knowledge", "company.yaml")
+DB_PATH = os.path.join(BASE_DIR, "backend", "user_db.db")
 
 load_dotenv()
 
