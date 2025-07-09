@@ -32,22 +32,27 @@ app = FastAPI()
 # ==== CORS設定 ====
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 本番運用では制限を追加してください
+    allow_origins=["*"],  # 本番では適切に制限してください
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ==== リクエスト用モデル ====
+# ==== モデル定義 ====
+
 class ChatInput(BaseModel):
     user_message: str
 
-# ==== メインエンドポイント ====
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+# ==== チャットエンドポイント ====
+
 @app.post("/secure-gpt-chat")
 async def secure_chat(payload: ChatInput):
     try:
-        print("📥 user_message 受信:")
-        print(payload.user_message[:1000])
+        print("📥 user_message 受信:", payload.user_message[:1000])
 
         response = client.chat.completions.create(
             model=MODEL,
@@ -85,7 +90,24 @@ async def secure_chat(payload: ChatInput):
         print("❌ エラー発生:", str(e))
         return {"error": f"エラーが発生しました: {str(e)}"}
 
-# ==== Streamlit開発互換用のサブエンドポイント ====
+# ==== エイリアス用チャットエンドポイント ====
+
 @app.post("/chat")
 async def alias_chat(payload: ChatInput):
     return await secure_chat(payload)
+
+# ==== 🔐 ログインエンドポイント ====
+
+@app.post("/login")
+async def login(data: LoginRequest):
+    # 🔐 仮の認証処理（必要に応じてDB連携などに置き換えてください）
+    if data.username == "ryuma" and data.password == "pass":
+        return {
+            "success": True,
+            "team_name": "A_team",
+            "is_admin": True
+        }
+    return {
+        "success": False,
+        "message": "ユーザー名またはパスワードが間違っています"
+    }
