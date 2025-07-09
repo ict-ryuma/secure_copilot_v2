@@ -6,3 +6,8 @@ __pycache__/
 *.db
 .env
 .DS_Store
+
+# exclude venv
+venv*/
+__pycache__/
+*.pyc
