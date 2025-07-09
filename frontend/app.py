@@ -21,7 +21,7 @@ load_dotenv()
 init_db()
 init_auth_db()
 
-LOGIN_API_URL = os.getenv("LOGIN_API_URL", "http://localhost:8001/login")
+LOGIN_API_URL = os.getenv("LOGIN_API_URL", "http://localhost:8000/login")
 GPT_API_URL = os.getenv("GPT_API_URL", "http://localhost:8000/secure-gpt-chat")
 
 st.set_page_config(page_title="📞 商談テキスト評価AI", layout="wide")
