@@ -1,0 +1,13 @@
+# .gitignore の中身
+venv/
+venv311_fixed/
+__pycache__/
+*.pyc
+*.db
+.env
+.DS_Store
+
+# exclude venv
+venv*/
+__pycache__/
+*.pyc

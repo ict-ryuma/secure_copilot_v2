@@ -1,0 +1,8 @@
+streamlit
+pydub
+webrtcvad
+PyMuPDF
+requests
+python-dotenv
+openai
+pandas
