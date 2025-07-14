@@ -10,6 +10,7 @@ def extract_scores_and_sections(gpt_output: str, score_items: List[str] = None) 
         "actions": "（アクション提案の記述が確認できませんでした）"
     }
 
+    # === 評価項目の初期設定 ===
     if not score_items:
         score_items = [
             "ヒアリング姿勢",
@@ -19,12 +20,13 @@ def extract_scores_and_sections(gpt_output: str, score_items: List[str] = None) 
             "対話のテンポ"
         ]
 
+    # === スコア抽出 ===
     for key in score_items:
         result["scores"][key] = 0.0
         patterns = [
-            rf"{re.escape(key)}[：:\s]*([0-9]+(?:\.[0-9]+)?)\s*/\s*10",
-            rf"{re.escape(key)}[：:\s]*([0-9]+(?:\.[0-9]+)?)点",
-            rf"{re.escape(key)}[：:\s]*([0-9]+(?:\.[0-9]+)?)"
+            rf"{re.escape(key)}[：:\s\-]*([0-9]+(?:\.[0-9]+)?)[ ]*/[ ]*10",      # ○○: 8.0/10
+            rf"{re.escape(key)}[：:\s\-]*([0-9]+(?:\.[0-9]+)?)点",              # ○○: 8.0点
+            rf"{re.escape(key)}[：:\s\-]*([0-9]+(?:\.[0-9]+)?)"                 # ○○: 8.0
         ]
         for pat in patterns:
             match = re.search(pat, gpt_output)
@@ -35,24 +37,26 @@ def extract_scores_and_sections(gpt_output: str, score_items: List[str] = None) 
                 except:
                     continue
 
+    # === セクションラベル定義 ===
     section_labels = {
-        "strengths": ["強み", "良かった点"],
-        "improvements": ["改善点"],
-        "cautions": ["注意すべきポイント", "注意点"],
-        "actions": ["次に取るべき推奨アクション", "推奨アクション"]
+        "strengths": ["強み", "良かった点", "ポジティブな点"],
+        "improvements": ["改善点", "課題", "弱み"],
+        "cautions": ["注意すべきポイント", "注意点", "リスク", "懸念点"],
+        "actions": ["推奨アクション", "次に取るべき推奨アクション", "次の打ち手", "次のアクション"]
     }
 
+    # === セクション位置探索 ===
     label_positions = []
     for section_key, labels in section_labels.items():
         for label in labels:
-            pattern = rf"(^|\n)[\s\-\*\d\.]*{label}[：:\s]*\n?"
+            pattern = rf"(?:^|\n)[\s\-●・\d\.【\[]*{label}[\]】\s：:\-]*"
             match = re.search(pattern, gpt_output)
             if match:
                 label_positions.append((match.start(), section_key, match.end()))
                 break
 
+    # === セクションごとに切り出し ===
     label_positions.sort()
-
     for i, (start_pos, section_key, content_start) in enumerate(label_positions):
         end_pos = label_positions[i + 1][0] if i + 1 < len(label_positions) else len(gpt_output)
         content = gpt_output[content_start:end_pos].strip()

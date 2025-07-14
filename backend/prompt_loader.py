@@ -1,39 +1,115 @@
-from pathlib import Path
-import yaml
-from typing import Optional, Dict, List, Any
+score_items:
+  - ヒアリング姿勢
+  - 説明のわかりやすさ
+  - クロージングの一貫性
+  - 感情の乗せ方と誠実さ
+  - 対話のテンポ
 
-PROMPT_CONFIG_PATH = Path(__file__).resolve().parent / "prompt_config.yaml"
+A_team:
+  product: "新車サブスクリプション"
+  text_prompt: |
+    以下の会話内容を読み、次の5つの評価項目について10点満点で数値を出し、理由を含めてフィードバックを記載してください。
 
-def load_prompt_config(path: Path = PROMPT_CONFIG_PATH) -> Dict[str, Any]:
-    if not path.exists():
-        raise FileNotFoundError(f"プロンプト設定ファイルが見つかりません: {path}")
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        if not isinstance(config, dict):
-            raise ValueError("YAMLの最上位構造は辞書形式である必要があります（チーム名またはscore_items）。")
-        return config
-    except yaml.YAMLError as e:
-        raise RuntimeError(f"YAMLの読み込み中にエラーが発生しました: {e}")
+    各スコアは必ず「項目名: 数値/10」の形式で書いてください。
 
-def get_prompts_for_team(team_name: str,
-                         fallback_text: Optional[str] = "",
-                         fallback_audio: Optional[str] = "") -> Dict[str, Any]:
-    config = load_prompt_config()
-    global_score_items: List[str] = config.get("score_items", [])
-    team_config = config.get(team_name, {})
+    あなたは「新車サブスク」の営業教育担当です。
+    評価軸：
+    - ヒアリング姿勢
+    - 説明のわかりやすさ
+    - クロージングの一貫性
+    - 感情の乗せ方と誠実さ
+    - 対話のテンポ
+    出力：
+    各スコア（10点満点）  
+    強み  
+    改善点  
+    注意すべきポイント  
+    次に取るべき推奨アクション（3つ）
 
-    if not isinstance(team_config, dict):
-        raise ValueError(f"チーム「{team_name}」の設定が無効です（辞書形式である必要があります）。")
+  audio_prompt: |
+    以下は新車営業トークの音声特徴量です。
+    声の大きさ・テンポ・沈黙・抑揚から営業スキルを5点満点で評価し、改善ポイントを簡潔に述べてください。
 
-    return {
-        "text_prompt": team_config.get("text_prompt", fallback_text),
-        "audio_prompt": team_config.get("audio_prompt", fallback_audio),
-        "product": team_config.get("product", ""),
-        "notes": team_config.get("notes", ""),
-        "score_items": global_score_items
-    }
+  notes: "若手が多いため、フィードバックは優しく具体的に。"
 
-def get_all_team_names() -> List[str]:
-    config = load_prompt_config()
-    return [key for key in config if key != "score_items"]
+B_team:
+  product: "中古車割賦販売"
+  text_prompt: |
+    以下の会話内容を読み、次の5つの評価項目について10点満点で数値を出し、理由を含めてフィードバックを記載してください。
+
+    各スコアは必ず「項目名: 数値/10」の形式で書いてください。
+
+    あなたは「中古車割賦販売」の営業責任者です。
+    評価軸：
+    - ヒアリング姿勢
+    - 説明のわかりやすさ
+    - クロージングの一貫性
+    - 感情の乗せ方と誠実さ
+    - 対話のテンポ
+    出力：
+    各スコア（10点満点）  
+    強み  
+    改善点  
+    注意すべきポイント  
+    次に取るべき推奨アクション（3つ）
+
+  audio_prompt: |
+    以下は中古車営業の音声ログです。
+    ベテラン営業を想定し、無駄な沈黙や過剰なトークを減らす観点から評価し、
+    声の質や速度などから5点満点でアドバイスしてください。
+
+  notes: "ベテラン営業多め。短時間勝負。端的なFBが好まれる。"
+
+C_team:
+  product: "法人向けEVカーリース"
+  text_prompt: |
+    以下の会話内容を読み、次の5つの評価項目について10点満点で数値を出し、理由を含めてフィードバックを記載してください。
+
+    各スコアは必ず「項目名: 数値/10」の形式で書いてください。
+
+    あなたは「法人営業」のスペシャリストです。
+    評価軸：
+    - ヒアリング姿勢
+    - 説明のわかりやすさ
+    - クロージングの一貫性
+    - 感情の乗せ方と誠実さ
+    - 対話のテンポ
+    出力：
+    各スコア（10点満点）  
+    強み  
+    改善点  
+    注意すべきポイント  
+    次に取るべき推奨アクション（3つ）
+
+  audio_prompt: |
+    以下はEV商談時の音声特徴量です。
+    論理的なトーンか、聞きやすい構成か、沈黙・詰まりのバランスを重視し、5点満点で評価してください。
+
+  notes: "法人対応のため、トークの論理構造と要点整理が最重要。"
+
+F_team:
+  product: "新規・混在チーム"
+  text_prompt: |
+    以下の会話内容を読み、次の5つの評価項目について10点満点で数値を出し、理由を含めてフィードバックを記載してください。
+
+    各スコアは必ず「項目名: 数値/10」の形式で書いてください。
+
+    あなたは「Fチーム」の営業マネージャーです。
+    評価軸：
+    - ヒアリング姿勢
+    - 説明のわかりやすさ
+    - クロージングの一貫性
+    - 感情の乗せ方と誠実さ
+    - 対話のテンポ
+    出力：
+    各スコア（10点満点）  
+    強み  
+    改善点  
+    注意すべきポイント  
+    次に取るべき推奨アクション（3つ）
+
+  audio_prompt: |
+    音声の抑揚や沈黙の使い方、声のトーンなどからトークの印象度を評価し、
+    伝わりやすさや説得力について5点満点でアドバイスしてください。
+
+  notes: "Fチームは幅広く混在しているため、柔軟かつバランス重視で評価してください。"

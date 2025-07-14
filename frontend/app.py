@@ -106,6 +106,7 @@ if submitted:
                 res = requests.post(GPT_API_URL, json={"user_message": f"{custom_prompt}\n\n{user_input}"}, timeout=60)
                 res.raise_for_status()
                 reply = res.json().get("reply", "").strip()
+                print("🔍 GPT出力の原文:\n", reply)  # ←スコア表示のため追加しました
                 if reply:
                     parsed = extract_scores_and_sections(reply, score_items)
 
