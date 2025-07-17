@@ -4,19 +4,22 @@ from typing import Tuple, List
 import streamlit as st
 import os
 
-# === 修正済: 絶対パスで user_db.db を参照 ===
+# === 絶対パス指定（どこからでも参照OK） ===
 DB_PATH = os.path.join(os.path.dirname(__file__), "user_db.db")
 
-# --- パスワードハッシュ化 ---
+
+# === パスワードをSHA256でハッシュ化 ===
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
-# --- DB初期化（ユーザー＋チーム） ---
+
+# === DB初期化（ユーザー・チームテーブル） ===
 def init_auth_db():
     create_user_table()
     create_team_table()
 
-# --- ユーザーテーブル作成 ---
+
+# === ユーザーテーブル作成 ===
 def create_user_table():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -32,7 +35,8 @@ def create_user_table():
     conn.commit()
     conn.close()
 
-# --- チームテーブル作成（初期データ付き） ---
+
+# === チームテーブル作成（初期データあり） ===
 def create_team_table():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -56,7 +60,8 @@ def create_team_table():
     conn.commit()
     conn.close()
 
-# --- チーム一覧取得（セレクトボックス用） ---
+
+# === チーム一覧（セレクトボックス用） ===
 def get_all_teams() -> List[str]:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -65,7 +70,8 @@ def get_all_teams() -> List[str]:
     conn.close()
     return [r[0] for r in rows]
 
-# --- ユーザー登録 ---
+
+# === ユーザー登録 ===
 def register_user(username: str, password: str, team_name: str, is_admin: bool = False) -> bool:
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -81,7 +87,8 @@ def register_user(username: str, password: str, team_name: str, is_admin: bool =
     finally:
         conn.close()
 
-# --- ログイン認証 ---
+
+# === ログイン認証 ===
 def login_user(username: str, password: str) -> Tuple[bool, str, bool]:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -97,7 +104,8 @@ def login_user(username: str, password: str) -> Tuple[bool, str, bool]:
     else:
         return False, "", False
 
-# --- ユーザー存在チェック ---
+
+# === ユーザー存在チェック ===
 def user_exists(username: str) -> bool:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -106,10 +114,33 @@ def user_exists(username: str) -> bool:
     conn.close()
     return result is not None
 
-# --- 現在のセッションユーザー情報を取得 ---
+
+# === セッション中のユーザー情報取得 ===
 def get_current_user():
     return {
         "username": st.session_state.get("username", ""),
         "team_name": st.session_state.get("team_name", ""),
         "is_admin": st.session_state.get("is_admin", False)
     }
+
+
+# === 管理者権限の更新 ===
+def update_user_role(username: str, is_admin: bool) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE users SET is_admin = ? WHERE username = ?
+    """, (int(is_admin), username))
+    conn.commit()
+    conn.close()
+    return True
+
+
+# === ユーザー削除 ===
+def delete_user(username: str) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE username = ?", (username,))
+    conn.commit()
+    conn.close()
+    return True
