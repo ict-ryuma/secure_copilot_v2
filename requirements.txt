@@ -1,9 +1,10 @@
-streamlit
+streamlit==1.31.1
 pydub
 webrtcvad
-PyMuPDF
+pymupdf==1.22.3
 requests
 python-dotenv
 openai
 pandas
 PyYAML
+fitz  # ※ PyMuPDF使うときに一部コードで明示的に必要な場合あり
