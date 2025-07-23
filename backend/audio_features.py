@@ -9,10 +9,12 @@ from pydub import AudioSegment
 from dotenv import load_dotenv
 from tempfile import NamedTemporaryFile
 import webrtcvad
+import requests
 
 # ==== 環境変数・API初期化 ====
 load_dotenv()
 API_TYPE = os.getenv("OPENAI_API_TYPE", "openai")
+GPT_API_URL = os.getenv("GPT_API_URL", "http://localhost:8000/secure-gpt-chat") 
 
 if API_TYPE == "azure":
     from openai import AzureOpenAI
@@ -23,9 +25,13 @@ if API_TYPE == "azure":
     )
     MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 else:
-    from openai import OpenAI
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    MODEL = "gpt-4"
+    from openai import AzureOpenAI
+    client = AzureOpenAI(
+        api_key=os.getenv("AZURE_OPENAI_KEY"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+)
+MODEL = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 
 # ==== 音声処理 ====
 def read_wave(path):
@@ -120,32 +126,19 @@ def create_prompt(transcript_text, vad_df, loudness_info):
 - 通話全体長: {loudness_info['duration_sec']} 秒
 """
 
-def evaluate_with_gpt(prompt):
+def evaluate_with_gpt(prompt_text):
+    """GPTでテキストを評価"""
     try:
-        print("\n==== 📨 GPT送信プロンプト ====")
-        print(prompt[:1000])
-
-        res = client.chat.completions.create(
-            model=MODEL,
-            messages=[
-                {"role": "system", "content": "あなたは営業通話のコーチです。"},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3
+        # ✅ 'text' → 'user_message' に修正
+        response = requests.post(
+            GPT_API_URL, 
+            json={"user_message": prompt_text},  # ← 修正
+            timeout=30
         )
-
-        print("\n==== ✅ GPTレスポンス生データ ====")
-        print(res)
-
-        gpt_result = res.choices[0].message.content
-        print("\n==== 🧠 GPT評価結果 ====")
-        print(gpt_result)
-
-        return gpt_result
-
+        response.raise_for_status()
+        return response.json().get("reply", "評価に失敗しました")
     except Exception as e:
-        print("⚠️ GPT評価に失敗しました:", e)
-        return "GPT評価に失敗しました。"
+        return f"エラー: {e}"
 
 def extract_audio_features_from_uploaded_file(uploaded_file_or_path):
     if isinstance(uploaded_file_or_path, str) and os.path.isfile(uploaded_file_or_path):

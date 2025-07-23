@@ -1,50 +1,54 @@
 # backend/db_team_master.py
 
 import sqlite3
+import os
 from datetime import datetime
 
-DB_PATH = "backend/user_db.db"
+# === 相対パス指定（score_log.db に統一） ===
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "score_log.db")
 
 # --- テーブル作成 ---
 def create_team_master_table():
+    """team_master テーブルを作成"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS team_master (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            team_name TEXT NOT NULL UNIQUE,
-            prompt_key TEXT NOT NULL UNIQUE,
-            text_prompt TEXT NOT NULL,
-            audio_prompt TEXT NOT NULL,
-            score_items TEXT NOT NULL,
+            team_name TEXT UNIQUE NOT NULL,
+            prompt_key TEXT NOT NULL,
+            text_prompt TEXT,
+            audio_prompt TEXT,
+            score_items TEXT,
             notes TEXT,
             is_active INTEGER DEFAULT 1,
-            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     conn.commit()
     conn.close()
 
 # --- 新規登録 ---
-def insert_team_prompt(team_name, prompt_key, text_prompt, audio_prompt, score_items, notes=""):
+def insert_team_prompt(name, key, text_prompt, audio_prompt, score_items, notes):
+    """新しいチームプロンプトを追加"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO team_master (team_name, prompt_key, text_prompt, audio_prompt, score_items, notes)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (team_name, prompt_key, text_prompt, audio_prompt, score_items, notes))
+    cursor.execute('''
+        INSERT INTO team_master (team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+    ''', (name, key, text_prompt, audio_prompt, score_items, notes, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
 
 # --- 一覧取得 ---
 def fetch_all_team_prompts():
+    """全てのチームプロンプトを取得"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM team_master WHERE is_active = 1")
-    results = cursor.fetchall()
+    cursor.execute('SELECT * FROM team_master ORDER BY team_name')
+    rows = cursor.fetchall()
     conn.close()
-    return results
+    return rows
 
 # --- 1件取得（ID指定） ---
 def fetch_team_prompt_by_id(id):
@@ -56,31 +60,39 @@ def fetch_team_prompt_by_id(id):
     return result
 
 # --- 更新 ---
-def update_team_prompt(id, team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active=1):
+def update_team_prompt(team_id, name, key, text_prompt, audio_prompt, score_items, notes, is_active):
+    """チームプロンプトを更新"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE team_master SET
-            team_name = ?,
-            prompt_key = ?,
-            text_prompt = ?,
-            audio_prompt = ?,
-            score_items = ?,
-            notes = ?,
-            is_active = ?,
-            last_updated = ?
-        WHERE id = ?
-    """, (team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, datetime.now(), id))
+    cursor.execute('''
+        UPDATE team_master 
+        SET team_name=?, prompt_key=?, text_prompt=?, audio_prompt=?, score_items=?, notes=?, is_active=?, updated_at=?
+        WHERE id=?
+    ''', (name, key, text_prompt, audio_prompt, score_items, notes, is_active, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), team_id))
     conn.commit()
     conn.close()
 
 # --- 削除（物理削除） ---
-def delete_team_prompt(id):
+def delete_team_prompt(team_id):
+    """チームプロンプトを削除"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM team_master WHERE id = ?", (id,))
+    cursor.execute('DELETE FROM team_master WHERE id=?', (team_id,))
     conn.commit()
     conn.close()
+
+def fetch_all_prompt_keys():
+    """プロンプトキー一覧を取得"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, prompt_key, notes, is_active, updated_at FROM team_master')
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+def create_prompt_key_master_table():
+    """後方互換性のため（実際は team_master を使用）"""
+    create_team_master_table()
 
 # --- 初期化（テスト用） ---
 if __name__ == "__main__":

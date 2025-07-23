@@ -1,115 +1,74 @@
-score_items:
-  - ヒアリング姿勢
-  - 説明のわかりやすさ
-  - クロージングの一貫性
-  - 感情の乗せ方と誠実さ
-  - 対話のテンポ
+import sqlite3
+import os
+import json
 
-A_team:
-  product: "新車サブスクリプション"
-  text_prompt: |
-    以下の会話内容を読み、次の5つの評価項目について10点満点で数値を出し、理由を含めてフィードバックを記載してください。
+# === 相対パス指定（score_log.db に統一） ===
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "score_log.db")
 
-    各スコアは必ず「項目名: 数値/10」の形式で書いてください。
+def parse_score_items(score_items_str):
+    """score_items文字列を安全にリストに変換"""
+    if not score_items_str:
+        return []
+    
+    score_items_str = score_items_str.strip()
+    
+    # 1. JSON形式として試行
+    if score_items_str.startswith('[') and score_items_str.endswith(']'):
+        try:
+            return json.loads(score_items_str)
+        except json.JSONDecodeError:
+            print(f"⚠️ JSON形式のパースに失敗: {score_items_str}")
+    
+    # 2. カンマ区切り文字列として処理
+    items = []
+    for item in score_items_str.split(','):
+        cleaned = item.strip().strip('"').strip("'").strip('[]')
+        if cleaned:
+            items.append(cleaned)
+    
+    return items
 
-    あなたは「新車サブスク」の営業教育担当です。
-    評価軸：
-    - ヒアリング姿勢
-    - 説明のわかりやすさ
-    - クロージングの一貫性
-    - 感情の乗せ方と誠実さ
-    - 対話のテンポ
-    出力：
-    各スコア（10点満点）  
-    強み  
-    改善点  
-    注意すべきポイント  
-    次に取るべき推奨アクション（3つ）
+def get_prompts_for_team(team_name):
+    """DBからチームのプロンプトを取得（管理画面の変更を即座に反映）"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT text_prompt, audio_prompt, score_items, notes
+            FROM team_master 
+            WHERE team_name = ? AND is_active = 1
+        """, (team_name,))
+        result = cursor.fetchone()
+        
+        if not result:
+            raise ValueError("チーム '{}' のプロンプト設定が見つかりません、または無効化されています".format(team_name))
+        
+        # ✅ 安全なscore_itemsパース
+        score_items_list = parse_score_items(result[2])
+        
+        print(f"🔍 team_name: {team_name}")
+        print(f"🔍 raw score_items: {result[2]}")
+        print(f"🔍 parsed score_items: {score_items_list}")
+        
+        return {
+            "text_prompt": result[0] or "",
+            "audio_prompt": result[1] or "", 
+            "score_items": score_items_list,
+            "notes": result[3] or ""
+        }
+        
+    finally:
+        conn.close()
 
-  audio_prompt: |
-    以下は新車営業トークの音声特徴量です。
-    声の大きさ・テンポ・沈黙・抑揚から営業スキルを5点満点で評価し、改善ポイントを簡潔に述べてください。
-
-  notes: "若手が多いため、フィードバックは優しく具体的に。"
-
-B_team:
-  product: "中古車割賦販売"
-  text_prompt: |
-    以下の会話内容を読み、次の5つの評価項目について10点満点で数値を出し、理由を含めてフィードバックを記載してください。
-
-    各スコアは必ず「項目名: 数値/10」の形式で書いてください。
-
-    あなたは「中古車割賦販売」の営業責任者です。
-    評価軸：
-    - ヒアリング姿勢
-    - 説明のわかりやすさ
-    - クロージングの一貫性
-    - 感情の乗せ方と誠実さ
-    - 対話のテンポ
-    出力：
-    各スコア（10点満点）  
-    強み  
-    改善点  
-    注意すべきポイント  
-    次に取るべき推奨アクション（3つ）
-
-  audio_prompt: |
-    以下は中古車営業の音声ログです。
-    ベテラン営業を想定し、無駄な沈黙や過剰なトークを減らす観点から評価し、
-    声の質や速度などから5点満点でアドバイスしてください。
-
-  notes: "ベテラン営業多め。短時間勝負。端的なFBが好まれる。"
-
-C_team:
-  product: "法人向けEVカーリース"
-  text_prompt: |
-    以下の会話内容を読み、次の5つの評価項目について10点満点で数値を出し、理由を含めてフィードバックを記載してください。
-
-    各スコアは必ず「項目名: 数値/10」の形式で書いてください。
-
-    あなたは「法人営業」のスペシャリストです。
-    評価軸：
-    - ヒアリング姿勢
-    - 説明のわかりやすさ
-    - クロージングの一貫性
-    - 感情の乗せ方と誠実さ
-    - 対話のテンポ
-    出力：
-    各スコア（10点満点）  
-    強み  
-    改善点  
-    注意すべきポイント  
-    次に取るべき推奨アクション（3つ）
-
-  audio_prompt: |
-    以下はEV商談時の音声特徴量です。
-    論理的なトーンか、聞きやすい構成か、沈黙・詰まりのバランスを重視し、5点満点で評価してください。
-
-  notes: "法人対応のため、トークの論理構造と要点整理が最重要。"
-
-F_team:
-  product: "新規・混在チーム"
-  text_prompt: |
-    以下の会話内容を読み、次の5つの評価項目について10点満点で数値を出し、理由を含めてフィードバックを記載してください。
-
-    各スコアは必ず「項目名: 数値/10」の形式で書いてください。
-
-    あなたは「Fチーム」の営業マネージャーです。
-    評価軸：
-    - ヒアリング姿勢
-    - 説明のわかりやすさ
-    - クロージングの一貫性
-    - 感情の乗せ方と誠実さ
-    - 対話のテンポ
-    出力：
-    各スコア（10点満点）  
-    強み  
-    改善点  
-    注意すべきポイント  
-    次に取るべき推奨アクション（3つ）
-
-  audio_prompt: |
-    音声の抑揚や沈黙の使い方、声のトーンなどからトークの印象度を評価し、
-    伝わりやすさや説得力について5点満点でアドバイスしてください。
-
-  notes: "Fチームは幅広く混在しているため、柔軟かつバランス重視で評価してください。"
+# 旧YAML対応（後方互換性のため一時保持）
+def load_prompt_config():
+    """非推奨: YAMLからの読み込み"""
+    import yaml
+    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "prompt_config.yaml")
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    except:
+        print("⚠️ prompt_config.yaml が見つかりません。DB方式に移行してください。")
+        return {}

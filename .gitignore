@@ -1,13 +1,15 @@
-# .gitignore の中身
+# 仮想環境（複数バージョン対応）
 venv/
 venv311_fixed/
+venv*/
+
+# Python キャッシュ
 __pycache__/
 *.pyc
+
+# DB・秘密ファイル
 *.db
 .env
-.DS_Store
 
-# exclude venv
-venv*/
-__pycache__/
-*.pyc
+# macOS特有の不要ファイル
+.DS_Store
