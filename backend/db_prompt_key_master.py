@@ -3,8 +3,8 @@
 import sqlite3
 import os
 
-# ✅ score_log.db に統一
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "score_log.db")
+# ✅ 修正: 絶対パスに統一
+DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 # --- テーブル作成 ---
 def create_prompt_key_master_table():
