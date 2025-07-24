@@ -1,3 +1,5 @@
+numpy==1.24.4
+pyarrow==12.0.1
 streamlit==1.31.1
 pydub
 webrtcvad
@@ -7,4 +9,3 @@ python-dotenv
 openai
 pandas
 PyYAML
-fitz  # ※ PyMuPDF使うときに一部コードで明示的に必要な場合あり
