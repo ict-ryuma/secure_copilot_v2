@@ -1,10 +1,12 @@
-import sqlite3
+# import sqlite3
 import json
 import os
 from pathlib import Path
+from mysql_connector import execute_query
+
 
 # ✅ 統一DBパス
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
+# DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def get_prompts_for_team(team_name: str) -> dict:
     """
@@ -57,20 +59,17 @@ def get_team_prompts_verified(team_name: str) -> dict:
     """検証済みチームからプロンプト設定を取得"""
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
         
         # ✅ 検証済みチームから取得
-        cursor.execute("""
+        rows = execute_query("""
             SELECT id, team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at
             FROM team_master
-            WHERE team_name = ? AND is_active = 1
-        """, (team_name,))
-        
-        result = cursor.fetchone()
-        conn.close()
-        
-        if not result:
+            WHERE team_name = %s AND is_active = %s
+        """, (team_name, 1), fetch=True)
+
+        if not rows:
             return {
                 "error": True,
                 "error_type": "data_not_found",
@@ -143,18 +142,17 @@ def get_team_prompts_fallback(team_name: str) -> dict:
         }
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute("""
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
+
+        rows = execute_query("""
             SELECT team_name, is_active 
             FROM team_master 
-            WHERE team_name = ?
+            WHERE team_name = %s
         """, (team_name,))
-        result = cursor.fetchone()
-        
+        result = rows[0] if rows else None
+
         if not result:
-            conn.close()
             return {
                 "error": True,
                 "error_type": "team_not_found",
@@ -163,7 +161,6 @@ def get_team_prompts_fallback(team_name: str) -> dict:
             }
         
         if result[1] != 1:
-            conn.close()
             return {
                 "error": True,
                 "error_type": "team_inactive",
@@ -185,21 +182,23 @@ def get_team_prompts_fallback(team_name: str) -> dict:
 def get_available_teams_for_user() -> list:
     """ユーザーが選択可能なアクティブチーム一覧（統一版）"""
     try:
-        from backend.auth import get_all_teams_safe
-        return get_all_teams_safe()
+        import backend.auth
+        return backend.auth.get_all_teams_safe()
+        # from backend.auth import get_all_teams_safe
+        # return get_all_teams_safe()
     except ImportError:
         # フォールバック
         try:
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            cursor.execute("""
+            # conn = sqlite3.connect(DB_PATH)
+            # cursor = conn.cursor()
+            rows = execute_query("""
                 SELECT DISTINCT team_name FROM team_master 
                 WHERE is_active = 1 
                 AND team_name NOT IN ('A_team', 'B_team', 'C_team', 'F_team')
                 ORDER BY team_name
             """)
-            teams = [row[0] for row in cursor.fetchall()]
-            conn.close()
+            teams = [row[0] for row in rows]
+            print(f"🔍 get_all_teams_safe取得結果: {teams}")
             return teams
         except Exception as e:
             print(f"❌ get_available_teams_for_user エラー: {e}")
@@ -231,7 +230,7 @@ def diagnose_prompts_system():
             "team_diagnosis": team_diagnosis,
             "available_teams": available_teams,
             "prompt_tests": prompt_tests,
-            "db_path": DB_PATH
+            # "db_path": DB_PATH
         }
         
     except Exception as e:

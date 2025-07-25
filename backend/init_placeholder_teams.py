@@ -1,9 +1,10 @@
 # init_placeholder_teams.py（新規作成）
-import sqlite3
+# import sqlite3
 import json
 from datetime import datetime
+from mysql_connector import execute_query
 
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
+# DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def init_placeholder_teams():
     """プレースホルダーチームをteam_masterに登録"""
@@ -47,11 +48,11 @@ def init_placeholder_teams():
         }
     ]
     
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
     
     # team_masterテーブル作成
-    cursor.execute('''
+    execute_query('''
         CREATE TABLE IF NOT EXISTS team_master (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             team_name TEXT UNIQUE NOT NULL,
@@ -67,7 +68,7 @@ def init_placeholder_teams():
     
     for team in placeholder_teams:
         try:
-            cursor.execute('''
+            execute_query('''
                 INSERT OR IGNORE INTO team_master 
                 (team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -85,8 +86,8 @@ def init_placeholder_teams():
         except Exception as e:
             print(f"❌ {team['team_name']} 登録エラー: {e}")
     
-    conn.commit()
-    conn.close()
+    # conn.commit()
+    # conn.close()
     print("🎉 プレースホルダーチーム初期化完了")
 
 if __name__ == "__main__":

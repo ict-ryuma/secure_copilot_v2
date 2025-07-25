@@ -5,12 +5,13 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 import streamlit as st
 import os
 import yaml
-import sqlite3
+# import sqlite3
 import fitz  # PyMuPDF
 import pandas as pd
 import json
 from datetime import datetime, date, time
 from dotenv import load_dotenv
+from backend.mysql_connector import execute_query
 from backend.auth import (
     get_current_user, register_user, get_all_teams, login_user,
     update_user_role, delete_user
@@ -68,19 +69,17 @@ def get_all_teams_safe():
     
     # フォールバック: team_masterテーブルから直接取得
     try:
-        conn = sqlite3.connect(PROMPT_DB_PATH)
-        cursor = conn.cursor()
+        # conn = sqlite3.connect(PROMPT_DB_PATH)
+        # cursor = conn.cursor()
         
         # ✅ 修正: 列名を team_name に統一
-        cursor.execute("""
+        execute_query("""
             SELECT team_name FROM team_master 
             WHERE is_active = 1 
             AND team_name NOT IN ('A_team', 'B_team', 'C_team', 'F_team')
             ORDER BY team_name
-        """)
-        teams = [row[0] for row in cursor.fetchall()]
-        conn.close()
-        
+        """, fetch=True)
+        teams = [row[0] for row in teams]
         print(f"🔍 取得したアクティブチーム（プレースホルダー除外）: {teams}")
         return teams
         
@@ -198,11 +197,9 @@ elif menu == "ユーザー一覧":
         from backend.auth import get_all_teams_safe, validate_team_comprehensive, update_user_role, diagnose_team_integrity
         
         # ユーザー情報取得
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT username, team_name, is_admin FROM users ORDER BY team_name, username")
-        users = cursor.fetchall()
-        conn.close()
+        # conn = sqlite3.connect(USER_DB_PATH)
+        # cursor = conn.cursor()
+        users = execute_query("SELECT username, team_name, is_admin FROM users ORDER BY team_name, username", fetch=True)
 
         # ✅ 統一関数でチーム一覧取得
         available_teams = get_all_teams_safe()
@@ -472,15 +469,15 @@ elif menu == "プロンプトキー管理":
         create_prompt_key_master_table()
         
         # ✅ 修正: team_masterテーブルから取得（統一）
-        conn = sqlite3.connect(PROMPT_DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("""
+        # conn = sqlite3.connect(PROMPT_DB_PATH)
+        # cursor = conn.cursor()
+        keys = execute_query("""
             SELECT id, prompt_key, notes as description, is_active, updated_at 
             FROM team_master 
             ORDER BY team_name
-        """)
-        keys = cursor.fetchall()
-        conn.close()
+        """, fetch=True)
+        # keys = cursor.fetchall()
+        # conn.close()
 
         # 既存のプロンプトキー表示ロジックはそのまま
         for key in keys:
@@ -493,11 +490,11 @@ elif menu == "プロンプトキー管理":
             with col2:
                 if is_active:
                     if st.button(f"⚪️ 無効化", key=f"deactivate_{id_}"):
-                        conn = sqlite3.connect(PROMPT_DB_PATH)
-                        cursor = conn.cursor()
-                        cursor.execute("UPDATE prompt_key_master SET is_active = 0 WHERE id = ?", (id_,))
-                        conn.commit()
-                        conn.close()
+                        # conn = sqlite3.connect(PROMPT_DB_PATH)
+                        # cursor = conn.cursor()
+                        execute_query("UPDATE prompt_key_master SET is_active = 0 WHERE id = %s", (id_,))
+                        # conn.commit()
+                        # conn.close()
                         st.success(f"'{prompt_key}' を無効化しました")
                         st.rerun()
 
@@ -781,11 +778,9 @@ elif menu == "ユーザー一覧":
     st.subheader("👥 登録ユーザー一覧と編集")
     try:
         # ✅ ユーザー情報は USER_DB_PATH を使用
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT username, team_name, is_admin FROM users ORDER BY team_name, username")
-        users = cursor.fetchall()
-        conn.close()
+        # conn = sqlite3.connect(USER_DB_PATH)
+        # cursor = conn.cursor()
+        users = execute_query("SELECT username, team_name, is_admin FROM users ORDER BY team_name, username", fetch=True)
 
         # ✅ 修正: プレースホルダー除外版の安全なチーム一覧取得
         available_teams = get_all_teams_safe()
@@ -970,12 +965,9 @@ elif menu == "チームごとのプロンプトキー設定":
         teams = fetch_all_team_prompts()
         
         # ✅ 有効なプロンプトキーを直接SQLで取得
-        conn = sqlite3.connect(PROMPT_DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT prompt_key FROM team_master WHERE is_active = 1")
-        key_options = [row[0] for row in cursor.fetchall()]
-        conn.close()
-
+        # conn = sqlite3.connect(PROMPT_DB_PATH)
+        # cursor = conn.cursor()
+        key_options = execute_query("SELECT prompt_key FROM team_master WHERE is_active = 1", fetch=True)
         if not key_options:
             st.info("有効なプロンプトキーがありません。まずはプロンプトキーを登録してください。")
         else:

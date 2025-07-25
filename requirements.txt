@@ -11,3 +11,4 @@ python-dotenv
 openai
 pandas
 PyYAML
+mysql-connector-python

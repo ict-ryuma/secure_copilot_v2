@@ -14,7 +14,8 @@ from backend.save_log import init_db, save_evaluation, already_logged
 from backend.extract_score import extract_scores_and_sections
 from backend.audio_features import extract_audio_features_from_uploaded_file, evaluate_with_gpt
 from backend.auth import init_auth_db
-from backend.prompt_loader import get_prompts_for_team, get_available_teams_for_user
+from backend.prompt_loader import get_prompts_for_team
+# from backend.prompt_loader import get_available_teams_for_user
 
 # --- 初期化 ---
 load_dotenv()

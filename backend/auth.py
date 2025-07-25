@@ -1,10 +1,11 @@
-import sqlite3
+# import sqlite3
 import hashlib
 from typing import List, Dict, Tuple
 import os
+from mysql_connector import execute_query
 
 # ✅ 統一DBパス
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
+# DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def hash_password(password: str) -> str:
     """パスワードをSHA256でハッシュ化"""
@@ -12,9 +13,9 @@ def hash_password(password: str) -> str:
 
 def init_auth_db():
     """ユーザーDBの初期化"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
+    execute_query('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
@@ -24,9 +25,9 @@ def init_auth_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    conn.commit()
-    conn.close()
-    print(f"✅ ユーザーDBを初期化しました: {DB_PATH}")
+    # conn.commit()
+    # conn.close()
+    print(f"✅ ユーザーDBを初期化しました:")
 
 # ✅ 統一チーム取得関数（プレースホルダー完全除外）
 def get_all_teams_safe() -> List[str]:
@@ -35,19 +36,17 @@ def get_all_teams_safe() -> List[str]:
     全箇所でこの関数を使用することで一貫性を保つ
     """
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("""
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
+        rows=execute_query("""
             SELECT DISTINCT team_name FROM team_master 
             WHERE is_active = 1 
             AND team_name NOT IN ('A_team', 'B_team', 'C_team', 'F_team')
             AND team_name IS NOT NULL
             AND team_name != ''
             ORDER BY team_name
-        """)
-        teams = [row[0] for row in cursor.fetchall()]
-        conn.close()
-        
+        """, fetch=True)
+        teams = [row[0] for row in rows]
         print(f"🔍 get_all_teams_safe取得結果: {teams}")
         return teams
         
@@ -78,17 +77,17 @@ def validate_team_comprehensive(team_name: str) -> Dict[str, any]:
     team_name = team_name.strip()
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
         
         # ✅ 1. 基本存在確認
-        cursor.execute("""
+        rows = execute_query("""
             SELECT team_name, is_active, text_prompt, audio_prompt, score_items 
             FROM team_master 
             WHERE team_name = ?
-        """, (team_name,))
-        result = cursor.fetchone()
-        conn.close()
+        """, (team_name,), fetch=True)
+        result = rows[0] if rows else None
+        # conn.close()
         
         if not result:
             available_teams = get_all_teams_safe()
@@ -195,25 +194,25 @@ def register_user(username: str, password: str, team_name: str, is_admin: bool =
         return False, full_message
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
         
         # ✅ 3. ユーザー重複チェック
-        cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
-        if cursor.fetchone():
-            conn.close()
+        rows = execute_query("SELECT username FROM users WHERE username = %s", (username,), fetch=True)
+        if rows:
             return False, f"ユーザー名 '{username}' は既に登録されています"
+            # return False, f"ユーザー名 '{username}' は既に登録されています"
         
         # ✅ 4. ユーザー登録実行
         hashed_password = hash_password(password)
-        cursor.execute('''
+        execute_query('''
             INSERT INTO users (username, password_hash, team_name, is_admin)
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s)
         ''', (username, hashed_password, team_name, is_admin))
-        
-        conn.commit()
-        conn.close()
-        
+
+        # conn.commit()
+        # conn.close()
+
         print(f"✅ ユーザー登録成功: {username} → {team_name} (管理者: {is_admin})")
         return True, f"ユーザー '{username}' をチーム '{team_name}' に登録しました"
         
@@ -227,19 +226,18 @@ def login_user(username: str, password: str) -> Tuple[bool, str, bool]:
     戻り値: (成功フラグ, チーム名, 管理者フラグ)
     """
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
         
         hashed_password = hash_password(password)
-        cursor.execute('''
+        rows = execute_query('''
             SELECT username, team_name, is_admin 
             FROM users 
-            WHERE username = ? AND password_hash = ?
-        ''', (username, hashed_password))
-        
-        result = cursor.fetchone()
-        conn.close()
-        
+            WHERE username = %s AND password_hash = %s
+        ''', (username, hashed_password), fetch=True)
+
+        result = rows[0] if rows else None
+
         if result:
             username_db, team_name, is_admin = result
             print(f"✅ 基本認証成功: {username_db} → チーム: {team_name}, 管理者: {bool(is_admin)}")
@@ -292,25 +290,25 @@ def update_user_role(username: str, is_admin: bool, team_name: str = None) -> Tu
                 suggestions = team_validation.get("suggestions", [])
                 return False, f"{error_msg}\n対処法: {'; '.join(suggestions)}"
         
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
         
         if team_name is not None:
-            cursor.execute('''
+            execute_query('''
                 UPDATE users 
-                SET is_admin = ?, team_name = ? 
-                WHERE username = ?
+                SET is_admin = %s, team_name = %s 
+                WHERE username = %s
             ''', (int(is_admin), team_name, username))
         else:
-            cursor.execute('''
+            execute_query('''
                 UPDATE users 
-                SET is_admin = ? 
-                WHERE username = ?
+                SET is_admin = %s 
+                WHERE username = %s
             ''', (int(is_admin), username))
-        
-        conn.commit()
-        conn.close()
-        
+
+        # conn.commit()
+        # conn.close()
+
         update_msg = f"ユーザー '{username}' を更新しました"
         if team_name:
             update_msg += f" (チーム: {team_name})"
@@ -326,13 +324,12 @@ def update_user_role(username: str, is_admin: bool, team_name: str = None) -> Tu
 def delete_user(username: str) -> bool:
     """ユーザー削除"""
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM users WHERE username = ?", (username,))
-        conn.commit()
-        deleted = cursor.rowcount > 0
-        conn.close()
-        
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
+        deleted=execute_query("DELETE FROM users WHERE username = %s", (username,))
+        # conn.commit()
+        # conn.close()
+
         if deleted:
             print(f"✅ ユーザー '{username}' を削除しました")
         else:
@@ -347,11 +344,11 @@ def delete_user(username: str) -> bool:
 def user_exists(username: str) -> bool:
     """ユーザー存在確認"""
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT 1 FROM users WHERE username = ?", (username,))
-        exists = cursor.fetchone() is not None
-        conn.close()
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
+        rows = execute_query("SELECT 1 FROM users WHERE username = %s", (username,), fetch=True)
+        exists = rows is not None
+        # conn.close()
         return exists
     except Exception as e:
         print(f"❌ ユーザー存在確認エラー: {str(e)}")
@@ -360,16 +357,15 @@ def user_exists(username: str) -> bool:
 def get_current_user(username: str) -> Dict[str, any]:
     """現在のユーザー情報取得（チーム検証付き）"""
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute('''
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
+        rows = execute_query('''
             SELECT username, team_name, is_admin 
             FROM users 
-            WHERE username = ?
-        ''', (username,))
-        result = cursor.fetchone()
-        conn.close()
-        
+            WHERE username = %s
+        ''', (username,), fetch=True)
+        result = rows[0] if rows else None
+
         if not result:
             return {"error": f"ユーザー '{username}' が見つかりません"}
         
@@ -392,13 +388,13 @@ def get_current_user(username: str) -> Dict[str, any]:
 def diagnose_team_integrity() -> Dict[str, any]:
     """チーム整合性の包括診断"""
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
         
         # 全ユーザー取得
-        cursor.execute("SELECT username, team_name, is_admin FROM users")
-        users = cursor.fetchall()
-        
+        rows = execute_query("SELECT username, team_name, is_admin FROM users", fetch=True)
+        users = rows if rows else []
+
         # 有効チーム取得
         valid_teams = get_all_teams_safe()
         
@@ -434,7 +430,7 @@ def diagnose_team_integrity() -> Dict[str, any]:
             "health_percentage": round((len(users) - issue_count) / len(users) * 100, 1) if users else 100
         }
         
-        conn.close()
+        # conn.close()
         return diagnosis
         
     except Exception as e:
