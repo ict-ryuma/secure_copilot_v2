@@ -2,7 +2,7 @@
 import json
 import os
 from pathlib import Path
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 
 
 # ✅ 統一DBパス

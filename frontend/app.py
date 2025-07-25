@@ -242,18 +242,18 @@ st.info("👤 あなたの営業トークをGPTと音声特徴で評価します
 if st.session_state.get("is_admin", False):
     with st.expander("🔧 デバッグ情報（管理者のみ）"):
         st.write("**現在のプロンプト設定:**")
-        st.text_area("text_prompt", custom_prompt, height=100, disabled=True)
-        st.text_area("audio_prompt", audio_prompt, height=50, disabled=True)
+        st.text_area("text_prompt", custom_prompt, height=100, disabled=True, key="text_prompt_textarea")
+        st.text_area("audio_prompt", audio_prompt, height=50, disabled=True, key="audio_prompt_textarea")
         st.write(f"score_items: {score_items}")
 
 st.subheader("👨‍💼 営業評価フォーム")
-with st.form(key="eval_form"):
+with st.form(key="eval_form_1"):
     col1, col2 = st.columns(2)
     with col1:
         member_name = st.text_input("営業担当者名", placeholder="例：佐藤")
     with col2:
         deal_id = st.text_input("商談ID", placeholder="例：D123")
-    user_input = st.text_area("▼ 商談テキストをここに貼り付けてください", height=300)
+    user_input = st.text_area("▼ 商談テキストをここに貼り付けてください", height=300, key="user_input_textarea")
     audio_file = st.file_uploader("🎙️ 音声ファイルをアップロード", type=["wav", "mp3", "m4a", "webm"])
     submitted = st.form_submit_button("🎯 評価・改善提案を受け取る")
 
@@ -345,7 +345,7 @@ if submitted:
 # filepath: /Users/ryumahoshi/secure_copilot_v2/frontend/app.py
 
 # ...existing imports...
-from backend.prompt_loader import get_prompts_for_team, get_available_teams_for_user
+# from backend.prompt_loader import get_prompts_for_team, get_available_teams_for_user
 
 # ...existing code...
 
@@ -511,20 +511,20 @@ def main_app():
     if st.session_state.get("is_admin", False):
         with st.expander("🔧 デバッグ情報（管理者のみ）"):
             st.write("**現在のプロンプト設定:**")
-            st.text_area("text_prompt", custom_prompt, height=100, disabled=True)
-            st.text_area("audio_prompt", audio_prompt, height=50, disabled=True)
+            st.text_area("text_prompt", custom_prompt, height=100, disabled=True, key="text_prompt_user_textarea")
+            st.text_area("audio_prompt", audio_prompt, height=50, disabled=True, key="audio_prompt_user_textarea")
             st.write(f"score_items: {score_items}")
             st.write(f"prompts全体: {prompts}")
     
     # ✅ 評価フォーム部分（既存コードをそのまま使用）
     st.subheader("👨‍💼 営業評価フォーム")
-    with st.form(key="eval_form"):
+    with st.form(key="eval_form_2"):
         col1, col2 = st.columns(2)
         with col1:
             member_name = st.text_input("営業担当者名", placeholder="例：佐藤")
         with col2:
             deal_id = st.text_input("商談ID", placeholder="例：D123")
-        user_input = st.text_area("▼ 商談テキストをここに貼り付けてください", height=300)
+        user_input = st.text_area("▼ 商談テキストをここに貼り付けてください", height=300, key="user_input_user_textarea")
         
         # ✅ 音声ファイルアップロード
         uploaded_file = st.file_uploader("🎤 音声ファイル（任意）", type=["wav", "mp3", "m4a"])

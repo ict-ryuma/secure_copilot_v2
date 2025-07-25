@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 print("✅ 実行中ファイル:", __file__)
 from openai import AzureOpenAI, OpenAI
 from backend.auth import verify_user
+import streamlit as st
 
 # === FastAPI アプリ作成 ===
 app = FastAPI()

@@ -2,10 +2,8 @@
 import hashlib
 from typing import List, Dict, Tuple
 import os
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 
-# ✅ 統一DBパス
-# DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def hash_password(password: str) -> str:
     """パスワードをSHA256でハッシュ化"""
