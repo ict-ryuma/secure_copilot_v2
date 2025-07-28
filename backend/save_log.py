@@ -3,11 +3,10 @@ import json
 import os
 from datetime import datetime, date, timedelta
 from pathlib import Path
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 from mysql.connector import Error
 
 # ✅ 修正: 絶対パスに統一
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def init_db():
     """評価ログテーブルを初期化"""
@@ -15,7 +14,7 @@ def init_db():
     # cursor = conn.cursor()
     execute_query('''
         CREATE TABLE IF NOT EXISTS evaluation_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTO_INCREMENT,
             deal_id TEXT,
             member_name TEXT,
             outcome TEXT,
@@ -61,7 +60,7 @@ def create_conversation_logs_table():
     # ✅ 基本テーブル作成
     execute_query('''
         CREATE TABLE IF NOT EXISTS conversation_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTO_INCREMENT,
             date TEXT NOT NULL,
             time TEXT,
             customer_name TEXT,
@@ -175,7 +174,7 @@ def get_team_dashboard_stats(team_name=None):
     
     if team_name:
         # ユーザー名からチーム絞り込み（簡易版）
-        query += " AND username IN (SELECT username FROM users WHERE team_name = ?)"
+        query += " AND username IN (SELECT username FROM users WHERE team_name = %s)"
         params.append(team_name)
 
     rows = execute_query(query, params)
@@ -398,5 +397,5 @@ def delete_conversation_log(log_id):
     """商談ログを削除（管理者機能）"""
     # conn = sqlite3.connect(DB_PATH)
     # cursor = conn.cursor()
-    rows = execute_query("DELETE FROM conversation_logs WHERE id = ?", (log_id,))
+    rows = execute_query("DELETE FROM conversation_logs WHERE id = %s", (log_id,))
     return rows > 0

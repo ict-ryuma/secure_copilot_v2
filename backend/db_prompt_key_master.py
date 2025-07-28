@@ -1,7 +1,7 @@
 # backend/db_prompt_key_master.py
 
 # import sqlite3
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 import os
 
 # ✅ 修正: 絶対パスに統一
@@ -68,7 +68,7 @@ def update_prompt_key(id, prompt_key, description, is_active):
 def delete_prompt_key(id):
     # conn = sqlite3.connect(DB_PATH)
     # cursor = conn.cursor()
-    execute_query("DELETE FROM prompt_key_master WHERE id = ?", (id,))
+    execute_query("DELETE FROM prompt_key_master WHERE id = %s", (id,))
     # conn.commit()
     # conn.close()
 

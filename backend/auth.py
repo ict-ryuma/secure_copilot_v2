@@ -11,11 +11,9 @@ def hash_password(password: str) -> str:
 
 def init_auth_db():
     """ユーザーDBの初期化"""
-    # conn = sqlite3.connect(DB_PATH)
-    # cursor = conn.cursor()
     execute_query('''
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTO_INCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             team_name TEXT NOT NULL,
@@ -23,8 +21,6 @@ def init_auth_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    # conn.commit()
-    # conn.close()
     print(f"✅ ユーザーDBを初期化しました:")
 
 # ✅ 統一チーム取得関数（プレースホルダー完全除外）
@@ -34,8 +30,6 @@ def get_all_teams_safe() -> List[str]:
     全箇所でこの関数を使用することで一貫性を保つ
     """
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
         rows=execute_query("""
             SELECT DISTINCT team_name FROM team_master 
             WHERE is_active = 1 
@@ -46,6 +40,7 @@ def get_all_teams_safe() -> List[str]:
         """, fetch=True)
         teams = [row[0] for row in rows]
         print(f"🔍 get_all_teams_safe取得結果: {teams}")
+        print(f"DEBUG: result = {teams}")
         return teams
         
     except Exception as e:
@@ -75,18 +70,15 @@ def validate_team_comprehensive(team_name: str) -> Dict[str, any]:
     team_name = team_name.strip()
     
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
-        
         # ✅ 1. 基本存在確認
         rows = execute_query("""
             SELECT team_name, is_active, text_prompt, audio_prompt, score_items 
             FROM team_master 
-            WHERE team_name = ?
+            WHERE team_name = %s
         """, (team_name,), fetch=True)
+
         result = rows[0] if rows else None
-        # conn.close()
-        
+
         if not result:
             available_teams = get_all_teams_safe()
             return {
@@ -192,9 +184,6 @@ def register_user(username: str, password: str, team_name: str, is_admin: bool =
         return False, full_message
     
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
-        
         # ✅ 3. ユーザー重複チェック
         rows = execute_query("SELECT username FROM users WHERE username = %s", (username,), fetch=True)
         if rows:
@@ -224,9 +213,6 @@ def login_user(username: str, password: str) -> Tuple[bool, str, bool]:
     戻り値: (成功フラグ, チーム名, 管理者フラグ)
     """
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
-        
         hashed_password = hash_password(password)
         rows = execute_query('''
             SELECT username, team_name, is_admin 
@@ -235,7 +221,6 @@ def login_user(username: str, password: str) -> Tuple[bool, str, bool]:
         ''', (username, hashed_password), fetch=True)
 
         result = rows[0] if rows else None
-
         if result:
             username_db, team_name, is_admin = result
             print(f"✅ 基本認証成功: {username_db} → チーム: {team_name}, 管理者: {bool(is_admin)}")
@@ -253,13 +238,13 @@ def verify_user(username: str, password: str) -> Tuple[bool, Dict[str, any]]:
     ユーザー認証（基本認証 + チーム検証）
     """
     # ✅ 1. 基本認証
-    is_valid, user_info = login_user(username, password)
-    
+    is_valid, team_name, is_admin = login_user(username, password)
+
     if not is_valid:
         return False, {"error": "認証に失敗しました"}
-    
+    user_info = {"team_name": team_name, "is_admin": is_admin}
     # ✅ 2. チーム包括検証
-    team_name = user_info.get("team_name", "")
+    # team_name = user_info.get("team_name", "")
     team_validation = validate_team_comprehensive(team_name)
     
     if not team_validation["valid"]:

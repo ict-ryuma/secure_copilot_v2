@@ -1,7 +1,7 @@
 # init_db_teams.py
 # import sqlite3
 import os
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 
 # ✅ 修正: 絶対パスに統一
 DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
@@ -13,7 +13,7 @@ def create_tables():
     # team_masterテーブル作成
     execute_query("""
     CREATE TABLE IF NOT EXISTS team_master (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INTEGER PRIMARY KEY AUTO_INCREMENT,
         team_name TEXT UNIQUE NOT NULL,
         prompt_key TEXT NOT NULL,
         text_prompt TEXT,
@@ -28,7 +28,7 @@ def create_tables():
     # prompt_key_masterもついでに作ってもOK
     execute_query("""
     CREATE TABLE IF NOT EXISTS prompt_key_master (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INTEGER PRIMARY KEY AUTO_INCREMENT,
         prompt_key TEXT,
         description TEXT,
         is_active INTEGER DEFAULT 1,

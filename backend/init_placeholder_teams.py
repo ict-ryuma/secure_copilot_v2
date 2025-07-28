@@ -2,7 +2,7 @@
 # import sqlite3
 import json
 from datetime import datetime
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 
 # DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
@@ -54,7 +54,7 @@ def init_placeholder_teams():
     # team_masterテーブル作成
     execute_query('''
         CREATE TABLE IF NOT EXISTS team_master (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTO_INCREMENT,
             team_name TEXT UNIQUE NOT NULL,
             prompt_key TEXT NOT NULL,
             text_prompt TEXT,
