@@ -7,7 +7,7 @@ import mysql.connector
 def get_connection():
     """Establish and return a connection to the MySQL database."""
     return mysql.connector.connect(
-        host="host.docker.internal",
+        host="mysql",
         user=os.environ.get("DB_USER", "root"),
         password=os.environ.get("DB_PASSWORD", ""),
         database=os.environ.get("DB_NAME", ""),
