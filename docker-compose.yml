@@ -3,8 +3,12 @@ services:
     build: .
     container_name: python_app
     ports:
-      - "8501:8501"
-      - "8000:8000"
+      - "8501:8501"  # メインアプリ (app.py)
+      - "8502:8502"  # マネージャーダッシュボード (mgr_dashboard.py)
+      - "8503:8503"  # 管理者画面 (admin_dashboard.py)
+      - "8504:8504"  # ユーザー登録 (app_register.py)
+      - "8505:8505"  # プロンプトキー管理 (prompt_key_dashboard.py)
+      - "8000:8000"  # API用
     # env_file:
     #   - .env
     volumes:
