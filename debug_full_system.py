@@ -1,10 +1,9 @@
 # debug_full_system.py（新規作成）
-import sqlite3
+from backend.mysql_connector import execute_query
 import json
 import os
 from datetime import datetime
 
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def diagnose_full_system():
     """システム全体の整合性診断"""
@@ -14,13 +13,10 @@ def diagnose_full_system():
     
     # 1. データベース接続確認
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        print(f"✅ データベース接続成功: {DB_PATH}")
+       
         
         # テーブル一覧
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tables = [row[0] for row in cursor.fetchall()]
+        tables = execute_query("SELECT name FROM sqlite_master WHERE type='table'", fetch=True)
         print(f"📋 テーブル一覧: {tables}")
         
     except Exception as e:
@@ -30,29 +26,25 @@ def diagnose_full_system():
     # 2. team_master整合性チェック
     print("\n🏷️ team_master テーブル診断")
     if "team_master" in tables:
-        cursor.execute("SELECT COUNT(*) FROM team_master")
-        team_count = cursor.fetchone()[0]
+        team_count = execute_query("SELECT COUNT(*) FROM team_master", fetch=True)[0][0]
         print(f"📊 総チーム数: {team_count}")
-        
-        cursor.execute("SELECT COUNT(*) FROM team_master WHERE is_active = 1")
-        active_count = cursor.fetchone()[0]
+
+        active_count = execute_query("SELECT COUNT(*) FROM team_master WHERE is_active = 1", fetch=True)[0][0]
         print(f"🟢 アクティブチーム数: {active_count}")
         
         # プレースホルダーチェック
-        cursor.execute("""
+        placeholders = execute_query("""
             SELECT team_name, is_active FROM team_master 
             WHERE team_name IN ('A_team', 'B_team', 'C_team', 'F_team')
-        """)
-        placeholders = cursor.fetchall()
+        """, fetch=True)
         print(f"🚨 プレースホルダーチーム: {len(placeholders)}件")
         for name, is_active in placeholders:
             status = "有効" if is_active else "無効"
             print(f"  - {name}: {status}")
             
         # score_items形式チェック
-        cursor.execute("SELECT team_name, score_items FROM team_master WHERE score_items IS NOT NULL")
-        score_items_data = cursor.fetchall()
-        
+        score_items_data = execute_query("SELECT team_name, score_items FROM team_master WHERE score_items IS NOT NULL", fetch=True)
+
         json_valid = 0
         csv_format = 0
         invalid = 0
@@ -74,18 +66,17 @@ def diagnose_full_system():
     # 3. users テーブル診断
     print("\n👥 users テーブル診断")
     if "users" in tables:
-        cursor.execute("SELECT COUNT(*) FROM users")
-        user_count = cursor.fetchone()[0]
+        user_count = execute_query("SELECT COUNT(*) FROM users", fetch=True)[0][0]
         print(f"📊 総ユーザー数: {user_count}")
         
         # チーム別ユーザー分布
-        cursor.execute("""
+        team_distribution = execute_query("""
             SELECT team_name, COUNT(*) as count 
             FROM users 
             GROUP BY team_name 
             ORDER BY count DESC
-        """)
-        team_distribution = cursor.fetchall()
+        """, fetch=True)
+        # team_distribution = cursor.fetchall()
         
         print("📊 チーム別ユーザー分布:")
         placeholder_users = 0
@@ -102,14 +93,12 @@ def diagnose_full_system():
     
     # 4. 孤立ユーザーチェック
     print("\n🔍 孤立ユーザーチェック")
-    cursor.execute("""
+    orphaned_users = execute_query("""
         SELECT u.username, u.team_name 
         FROM users u 
         LEFT JOIN team_master t ON u.team_name = t.team_name 
         WHERE t.team_name IS NULL OR t.is_active = 0
-    """)
-    orphaned_users = cursor.fetchall()
-    
+    """, fetch=True)
     if orphaned_users:
         print(f"🚨 孤立ユーザー: {len(orphaned_users)}人")
         for username, team_name in orphaned_users:
@@ -136,7 +125,7 @@ def diagnose_full_system():
         for action in actions:
             print(f"  {action}")
     
-    conn.close()
+    # conn.close()
     print("\n🎉 診断完了")
 
 if __name__ == "__main__":

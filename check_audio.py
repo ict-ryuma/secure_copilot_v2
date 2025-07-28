@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent / "backend"))
 
 try:
-    from audio_features import extract_audio_features
+    from backend.audio_features import extract_audio_features
 except Exception as import_err:
     print(f"❌ モジュール読み込みエラー: {import_err}")
     sys.exit(1)

@@ -1,111 +1,112 @@
 # backend/db_team_master.py
 
-import sqlite3
+# import sqlite3
 import json
 from datetime import datetime
 import os
+from .mysql_connector import execute_query
 
 # ✅ 統一DBパス
 DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def create_team_master_table():
     """team_masterテーブル作成（9列対応）"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
+    execute_query('''
         CREATE TABLE IF NOT EXISTS team_master (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            team_name TEXT UNIQUE NOT NULL,
-            prompt_key TEXT NOT NULL,
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            team_name VARCHAR(255) UNIQUE NOT NULL,
+            prompt_key VARCHAR(255) NOT NULL,
             text_prompt TEXT,
             audio_prompt TEXT,
             score_items TEXT,
             notes TEXT,
-            is_active INTEGER DEFAULT 1,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            is_active TINYINT DEFAULT 1,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ''')
-    conn.commit()
-    conn.close()
+    # conn.commit()
+    # conn.close()
     print("✅ team_master テーブル作成完了（9列対応）")
 
 def fetch_all_team_prompts():
     """全てのチームプロンプトを取得（9列対応）"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
+
     # ✅ 明示的に9列すべてを取得
-    cursor.execute('''
+    rows = execute_query('''
         SELECT id, team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at 
         FROM team_master 
         ORDER BY team_name
-    ''')
-    rows = cursor.fetchall()
-    conn.close()
+    ''', fetch=True)
+    # conn.close()
     
     print(f"🔍 取得されたチーム数: {len(rows)}件（9列対応）")
     return rows
 
 def fetch_team_prompt_by_id(team_id):
     """ID指定でチーム情報を取得（9列対応）"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
     
     # ✅ 明示的に9列すべてを取得
-    cursor.execute('''
+    rows = execute_query('''
         SELECT id, team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at 
         FROM team_master 
-        WHERE id = ?
-    ''', (team_id,))
-    result = cursor.fetchone()
-    conn.close()
+        WHERE id = %s
+    ''', (team_id,), fetch=True)
+    result = rows[0] if rows else None
+    # conn.close()
     
     return result
 
 def update_team_prompt(team_id, name, key, text_prompt, audio_prompt, score_items, notes, is_active):
     """チームプロンプトを更新（updated_at自動更新）"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
     
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    cursor.execute('''
-        UPDATE team_master 
-        SET team_name=?, prompt_key=?, text_prompt=?, audio_prompt=?, score_items=?, notes=?, is_active=?, updated_at=?
-        WHERE id=?
+
+    execute_query('''
+        UPDATE team_master
+        SET team_name=%s, prompt_key=%s, text_prompt=%s, audio_prompt=%s, score_items=%s, notes=%s, is_active=%s, updated_at=%s
+        WHERE id=%s
     ''', (name, key, text_prompt, audio_prompt, score_items, notes, is_active, current_time, team_id))
     
-    conn.commit()
-    conn.close()
+    # conn.commit()
+    # conn.close()
     print(f"✅ チーム '{name}' (ID: {team_id}) を更新しました（{current_time}）")
 
 def insert_team_prompt(name, key, text_prompt, audio_prompt, score_items, notes="", is_active=1):
     """新しいチームプロンプトを挿入（updated_at自動設定）"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
+
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    cursor.execute('''
+
+    execute_query('''
         INSERT INTO team_master (team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     ''', (name, key, text_prompt, audio_prompt, score_items, notes, is_active, current_time))
-    
-    conn.commit()
-    conn.close()
+
+    # conn.commit()
+    # conn.close()
     print(f"✅ 新しいチーム '{name}' を登録しました（{current_time}）")
 
 def delete_team_prompt(team_id):
     """チームプロンプトを削除"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
     
     # 削除前にチーム名を取得（ログ用）
-    cursor.execute("SELECT team_name FROM team_master WHERE id = ?", (team_id,))
-    result = cursor.fetchone()
-    team_name = result[0] if result else f"ID:{team_id}"
-    
-    cursor.execute("DELETE FROM team_master WHERE id = ?", (team_id,))
-    conn.commit()
-    conn.close()
+    rows = execute_query("SELECT team_name FROM team_master WHERE id = %s", (team_id,))
+    team_name = rows[0][0] if rows else f"ID:{team_id}"
+
+    execute_query("DELETE FROM team_master WHERE id = %s", (team_id,))
     print(f"✅ チーム '{team_name}' (ID: {team_id}) を削除しました")
+
+# テスト実行（初期化）
+if __name__ == "__main__":
+    create_team_master_table()

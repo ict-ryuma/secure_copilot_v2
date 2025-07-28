@@ -1,19 +1,20 @@
-import sqlite3
+# import sqlite3
 import json
 import os
 from datetime import datetime, date, timedelta
 from pathlib import Path
+from .mysql_connector import execute_query
+from mysql.connector import Error
 
 # ✅ 修正: 絶対パスに統一
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def init_db():
     """評価ログテーブルを初期化"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
+    execute_query('''
         CREATE TABLE IF NOT EXISTS evaluation_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTO_INCREMENT,
             deal_id TEXT,
             member_name TEXT,
             outcome TEXT,
@@ -22,51 +23,44 @@ def init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    conn.commit()
-    conn.close()
+    # conn.commit()
+    # conn.close()
 
 def save_evaluation(deal_id, member_name, outcome, parsed_data, raw_output):
     """評価結果をDBに保存"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
+    execute_query('''
         INSERT INTO evaluation_logs (deal_id, member_name, outcome, scores, raw_output)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
     ''', (deal_id, member_name, outcome, json.dumps(parsed_data, ensure_ascii=False), raw_output))
-    conn.commit()
-    conn.close()
+    # conn.commit()
+    # conn.close()
 
 def already_logged(deal_id, member_name):
     """既に同じ評価が保存されているかチェック"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
+    rows = execute_query('''
         SELECT COUNT(*) FROM evaluation_logs 
-        WHERE deal_id = ? AND member_name = ?
+        WHERE deal_id = %s AND member_name = %s
     ''', (deal_id, member_name))
-    count = cursor.fetchone()[0]
-    conn.close()
+    count = rows[0][0] if rows else 0
     return count > 0
 
 def get_all_evaluations():
     """全評価ログを取得"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM evaluation_logs ORDER BY created_at DESC')
-    rows = cursor.fetchall()
-    conn.close()
+    rows = execute_query('SELECT * FROM evaluation_logs ORDER BY created_at DESC')
     return rows
 
 # ✅ 商談評価ログ管理機能（拡張版）
 def create_conversation_logs_table():
     """商談評価ログテーブルを作成・拡張（なければ）"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
     
     # ✅ 基本テーブル作成
-    cursor.execute('''
+    execute_query('''
         CREATE TABLE IF NOT EXISTS conversation_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTO_INCREMENT,
             date TEXT NOT NULL,
             time TEXT,
             customer_name TEXT,
@@ -77,45 +71,61 @@ def create_conversation_logs_table():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+        # ✅ 新カラム追加（既存テーブルに対応）
+    alter_statements = [
+        'ALTER TABLE conversation_logs ADD COLUMN status TEXT DEFAULT "未設定"',
+        'ALTER TABLE conversation_logs ADD COLUMN followup_date TEXT',
+        'ALTER TABLE conversation_logs ADD COLUMN tags TEXT',
+    ]
+
+    for stmt in alter_statements:
+        try:
+            execute_query(stmt)
+        except Error as err:
+            if "Duplicate column" in str(err):
+                pass  # 既にカラムが存在する
+            else:
+                print(f"❌ カラム追加失敗: {err}")
     
     # ✅ 新カラム追加（既存テーブルに対応）
-    try:
-        cursor.execute('ALTER TABLE conversation_logs ADD COLUMN status TEXT DEFAULT "未設定"')
-    except sqlite3.OperationalError:
-        pass  # カラムが既に存在する場合
+    # try:
+    #     execute_query('ALTER TABLE conversation_logs ADD COLUMN status TEXT DEFAULT "未設定"')
+    # except sqlite3.OperationalError:
+    #     pass  # カラムが既に存在する場合
         
-    try:
-        cursor.execute('ALTER TABLE conversation_logs ADD COLUMN followup_date TEXT')
-    except sqlite3.OperationalError:
-        pass
+    # try:
+    #     execute_query('ALTER TABLE conversation_logs ADD COLUMN followup_date TEXT')
+    # except sqlite3.OperationalError:
+    #     pass
         
-    try:
-        cursor.execute('ALTER TABLE conversation_logs ADD COLUMN tags TEXT')
-    except sqlite3.OperationalError:
-        pass
-    
-    conn.commit()
-    conn.close()
+    # try:
+    #     execute_query('ALTER TABLE conversation_logs ADD COLUMN tags TEXT')
+    # except sqlite3.OperationalError:
+    #     pass
+
+    # conn.commit()
+    # conn.close()
 
 def save_conversation_log(date_str, time_str, customer_name, conversation_text, gpt_feedback, score, username, status="未設定", followup_date=None, tags=""):
     """商談ログを保存（拡張版）"""
     create_conversation_logs_table()
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
+    execute_query('''
         INSERT INTO conversation_logs (date, time, customer_name, conversation_text, gpt_feedback, score, username, status, followup_date, tags)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (date_str, time_str, customer_name, conversation_text, gpt_feedback, score, username, status, followup_date, tags))
-    conn.commit()
-    conn.close()
+    # cursor = conn.cursor()
+    # cursor.execute('''
+    #     INSERT INTO conversation_logs (date, time, customer_name, conversation_text, gpt_feedback, score, username, status, followup_date, tags)
+    #     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    # ''', (date_str, time_str, customer_name, conversation_text, gpt_feedback, score, username, status, followup_date, tags))
+    # conn.commit()
+    # conn.close()
 
 def get_conversation_logs(username=None, start_date=None, end_date=None, status_filter=None, customer_filter=None, score_min=None, score_max=None, tag_filter=None):
     """商談ログを取得（フィルター強化版）"""
     create_conversation_logs_table()
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
-    query = "SELECT * FROM conversation_logs WHERE 1=1"
+    rows = execute_query('SELECT * FROM conversation_logs WHERE 1=1')
     params = []
     
     if username:
@@ -151,32 +161,25 @@ def get_conversation_logs(username=None, start_date=None, end_date=None, status_
         params.append(f"%{tag_filter}%")
     
     query += " ORDER BY date DESC, time DESC"
-    
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-    conn.close()
-    
+
+    rows = execute_query(query, params)
+
     return rows
 
 def get_team_dashboard_stats(team_name=None):
     """チーム別ダッシュボード統計を取得"""
     create_conversation_logs_table()
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
-    query = "SELECT * FROM conversation_logs WHERE 1=1"
+    rows = execute_query("SELECT * FROM conversation_logs WHERE 1=1")
     params = []
     
     if team_name:
         # ユーザー名からチーム絞り込み（簡易版）
-        query += " AND username IN (SELECT username FROM users WHERE team_name = ?)"
+        query += " AND username IN (SELECT username FROM users WHERE team_name = %s)"
         params.append(team_name)
-    
-    cursor.execute(query, params)
-    logs = cursor.fetchall()
-    conn.close()
-    
-    if not logs:
+
+    rows = execute_query(query, params)
+
+    if not rows:
         return {
             "total_logs": 0,
             "avg_score": 0,
@@ -186,13 +189,13 @@ def get_team_dashboard_stats(team_name=None):
         }
     
     # 統計計算
-    total_logs = len(logs)
-    scores = [log[6] for log in logs if log[6] is not None]
+    total_logs = len(rows)
+    scores = [log[6] for log in rows if log[6] is not None]
     avg_score = sum(scores) / len(scores) if scores else 0
     
     # ステータス分布（新カラムに対応）
     status_counts = {}
-    for log in logs:
+    for log in rows:
         status = log[9] if len(log) > 9 else "未設定"
         status_counts[status] = status_counts.get(status, 0) + 1
     
@@ -203,8 +206,8 @@ def get_team_dashboard_stats(team_name=None):
     
     # 今月の活動数
     current_month = datetime.now().strftime('%Y-%m')
-    recent_activity = sum(1 for log in logs if log[1].startswith(current_month))
-    
+    recent_activity = sum(1 for log in rows if log[1].startswith(current_month))
+
     return {
         "total_logs": total_logs,
         "avg_score": round(avg_score, 1),
@@ -219,8 +222,8 @@ def get_followup_schedule(username=None, date_range_days=30, status_filter=None)
     conn = None
     
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        # conn = sqlite3.connect(DB_PATH)
+        # cursor = conn.cursor()
         
         # ✅ 入力値検証・正規化
         if not isinstance(date_range_days, (int, float)) or date_range_days <= 0:
@@ -274,9 +277,8 @@ def get_followup_schedule(username=None, date_range_days=30, status_filter=None)
         query += " ORDER BY followup_date ASC, COALESCE(time, '00:00') ASC, customer_name ASC"
         
         # ✅ クエリ実行
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        
+        rows = execute_query(query, params)
+
         # ✅ 結果検証・後処理
         valid_rows = []
         for row in rows:
@@ -303,21 +305,37 @@ def get_followup_schedule(username=None, date_range_days=30, status_filter=None)
         """)
         
         return valid_rows
-        
-    except sqlite3.Error as db_error:
+    except Error as db_error:
         print(f"❌ DB エラー: {db_error}")
         return []
-        
+
     except Exception as e:
         print(f"❌ フォローアップ取得エラー: {e}")
         import traceback
-        traceback.print_exc()  # デバッグ用詳細エラー
+        traceback.print_exc()
         return []
-        
+
     finally:
-        # ✅ 確実なDB接続クローズ
         if conn:
-            conn.close()
+            try:
+                conn.close()
+            except Exception:
+                pass
+        
+    # except sqlite3.Error as db_error:
+    #     print(f"❌ DB エラー: {db_error}")
+    #     return []
+        
+    # except Exception as e:
+    #     print(f"❌ フォローアップ取得エラー: {e}")
+    #     import traceback
+    #     traceback.print_exc()  # デバッグ用詳細エラー
+    #     return []
+        
+    # finally:
+    #     # ✅ 確実なDB接続クローズ
+    #     if conn:
+    #         conn.close()
 
 # ✅ 新機能: フォローアップ統計取得（拡張機能）
 def get_followup_stats(username=None, days_ahead=30):
@@ -377,9 +395,7 @@ def get_followup_stats(username=None, days_ahead=30):
 
 def delete_conversation_log(log_id):
     """商談ログを削除（管理者機能）"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM conversation_logs WHERE id = ?", (log_id,))
-    conn.commit()
-    conn.close()
-    return cursor.rowcount > 0
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
+    rows = execute_query("DELETE FROM conversation_logs WHERE id = %s", (log_id,))
+    return rows > 0

@@ -1,14 +1,13 @@
 # test_9column_compatibility.py（新規作成）
 # filepath: /Users/ryumahoshi/secure_copilot_v2/test_9column_compatibility.py
-
-import sqlite3
 import sys
 import os
+from backend.mysql_connector import execute_query
 
 # パス設定
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), ".")))
 
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
+# DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def test_all_unpack_operations():
     """全ての unpack 操作をテスト"""
@@ -16,29 +15,27 @@ def test_all_unpack_operations():
     print("🧪 9列対応テスト開始")
     print("=" * 50)
     
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    # conn = sqlite3.connect(DB_PATH)
+    # cursor = conn.cursor()
     
     # 1. スキーマ確認
-    cursor.execute("PRAGMA table_info(team_master)")
-    schema = cursor.fetchall()
+    schema = execute_query("PRAGMA table_info(team_master)")
     print(f"📋 team_master カラム数: {len(schema)}")
     
     for i, (cid, name, type_, notnull, default, pk) in enumerate(schema):
         print(f"  {i+1}. {name} ({type_})")
     
     # 2. サンプルデータ取得
-    cursor.execute("SELECT * FROM team_master LIMIT 1")
-    sample = cursor.fetchone()
-    
+    sample = execute_query("SELECT * FROM team_master LIMIT 1", fetch=True)
+
     if not sample:
         print("⚠️ テストデータがありません。プレースホルダーチームを作成します...")
         
         # テストデータ作成
-        cursor.execute('''
+        execute_query('''
             INSERT OR IGNORE INTO team_master 
             (team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             "TEST_TEAM",
             "test_prompt_key",
@@ -49,11 +46,10 @@ def test_all_unpack_operations():
             1,
             "2024-01-01 12:00:00"
         ))
-        conn.commit()
-        
-        cursor.execute("SELECT * FROM team_master WHERE team_name = 'TEST_TEAM'")
-        sample = cursor.fetchone()
-    
+        # conn.commit()
+
+        sample = execute_query("SELECT * FROM team_master WHERE team_name = 'TEST_TEAM'", fetch=True)
+
     print(f"\n🔍 サンプルデータ（{len(sample)}列）:")
     for i, value in enumerate(sample):
         column_name = schema[i][1] if i < len(schema) else f"unknown_{i}"
@@ -97,10 +93,7 @@ def test_all_unpack_operations():
         return False
     
     # 5. テストデータクリーンアップ
-    cursor.execute("DELETE FROM team_master WHERE team_name = 'TEST_TEAM'")
-    conn.commit()
-    
-    conn.close()
+    execute_query("DELETE FROM team_master WHERE team_name = 'TEST_TEAM'")
     print(f"\n🎉 全テスト完了！9列対応は正常です。")
     return True
 
