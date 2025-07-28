@@ -616,24 +616,27 @@ elif menu == "会社ビジョン学習":
                 status_text = st.empty()
                 
                 status_text.text("PDF読み込み中...")
-                progress_bar.progress(25)
+                progress_bar.progress(0.25)  # 25% → 0.25に修正
                 
                 with fitz.open(stream=uploaded_file.read(), filetype="pdf") as doc:
-                    status_text.text(f"テキスト抽出中... ({len(doc)}ページ)")
-                    progress_bar.progress(50)
+                    total_pages = len(doc)  # ドキュメントが開いている間に取得
+                    status_text.text(f"テキスト抽出中... ({total_pages}ページ)")
+                    progress_bar.progress(0.5)  # 50% → 0.5に修正
                     
                     pages_text = []
                     for i, page in enumerate(doc):
                         pages_text.append(page.get_text())
-                        progress_bar.progress(50 + (i + 1) / len(doc) * 30)
+                        # プログレス値を0.0-1.0の範囲に正規化
+                        progress_value = 0.5 + (i + 1) / total_pages * 0.3  # 50%から80%の範囲
+                        progress_bar.progress(min(progress_value, 1.0))  # 1.0を超えないよう制限
                     
                     extracted_text = "\n".join(pages_text)
                 
-                progress_bar.progress(100)
+                progress_bar.progress(1.0)  # 100% → 1.0に修正
                 status_text.text("✅ 完了")
                 
                 if extracted_text.strip():
-                    st.success(f"✅ PDFからテキストを抽出しました（{len(extracted_text)}文字、{len(doc)}ページ）")
+                    st.success(f"✅ PDFからテキストを抽出しました（{len(extracted_text)}文字、{total_pages}ページ）")
                     
                     # ✅ プレビュー表示（最初の500文字）
                     preview_text = extracted_text[:500] + ("..." if len(extracted_text) > 500 else "")
