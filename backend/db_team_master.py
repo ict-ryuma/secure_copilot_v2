@@ -55,7 +55,7 @@ def fetch_team_prompt_by_id(team_id):
     rows = execute_query('''
         SELECT id, team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at 
         FROM team_master 
-        WHERE id = ?
+        WHERE id = %s
     ''', (team_id,), fetch=True)
     result = rows[0] if rows else None
     # conn.close()
@@ -71,8 +71,8 @@ def update_team_prompt(team_id, name, key, text_prompt, audio_prompt, score_item
 
     execute_query('''
         UPDATE team_master
-        SET team_name=?, prompt_key=?, text_prompt=?, audio_prompt=?, score_items=?, notes=?, is_active=?, updated_at=?
-        WHERE id=?
+        SET team_name=%s, prompt_key=%s, text_prompt=%s, audio_prompt=%s, score_items=%s, notes=%s, is_active=%s, updated_at=%s
+        WHERE id=%s
     ''', (name, key, text_prompt, audio_prompt, score_items, notes, is_active, current_time, team_id))
     
     # conn.commit()
@@ -101,10 +101,10 @@ def delete_team_prompt(team_id):
     # cursor = conn.cursor()
     
     # 削除前にチーム名を取得（ログ用）
-    rows = execute_query("SELECT team_name FROM team_master WHERE id = ?", (team_id,))
+    rows = execute_query("SELECT team_name FROM team_master WHERE id = %s", (team_id,), fetch=True)
     team_name = rows[0][0] if rows else f"ID:{team_id}"
 
-    execute_query("DELETE FROM team_master WHERE id = ?", (team_id,))
+    execute_query("DELETE FROM team_master WHERE id = %s", (team_id,))
     print(f"✅ チーム '{team_name}' (ID: {team_id}) を削除しました")
 
 # テスト実行（初期化）

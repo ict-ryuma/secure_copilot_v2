@@ -68,7 +68,7 @@ def update_prompt_key(id, prompt_key, description, is_active):
 def delete_prompt_key(id):
     # conn = sqlite3.connect(DB_PATH)
     # cursor = conn.cursor()
-    execute_query("DELETE FROM prompt_key_master WHERE id = ?", (id,))
+    execute_query("DELETE FROM prompt_key_master WHERE id = %s", (id,))
     # conn.commit()
     # conn.close()
 

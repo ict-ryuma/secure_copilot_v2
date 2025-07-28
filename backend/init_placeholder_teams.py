@@ -17,7 +17,7 @@ def init_placeholder_teams():
             "audio_prompt": "音声の印象から話し方・テンポ・感情のこもり具合を評価してください。",
             "score_items": '["ヒアリング姿勢","説明のわかりやすさ","クロージングの一貫性","感情の乗せ方と誠実さ","対話のテンポ"]',
             "notes": "プレースホルダーチーム（移行用）",
-            "is_active": 0  # ✅ 無効状態で作成
+            "is_active": 1  # ✅ 有効状態に変更
         },
         {
             "team_name": "B_team", 
@@ -54,24 +54,31 @@ def init_placeholder_teams():
     # team_masterテーブル作成
     execute_query('''
         CREATE TABLE IF NOT EXISTS team_master (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            team_name TEXT UNIQUE NOT NULL,
-            prompt_key TEXT NOT NULL,
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            team_name VARCHAR(50) UNIQUE NOT NULL,
+            prompt_key VARCHAR(50) NOT NULL,
             text_prompt TEXT,
             audio_prompt TEXT,
             score_items TEXT,
             notes TEXT,
-            is_active INTEGER DEFAULT 1,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            is_active TINYINT DEFAULT 1,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
     for team in placeholder_teams:
         try:
             execute_query('''
-                INSERT OR IGNORE INTO team_master 
+                INSERT INTO team_master 
                 (team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE 
+                text_prompt = VALUES(text_prompt),
+                audio_prompt = VALUES(audio_prompt),
+                score_items = VALUES(score_items),
+                notes = VALUES(notes),
+                is_active = VALUES(is_active),
+                updated_at = CURRENT_TIMESTAMP
             ''', (
                 team["team_name"],
                 team["prompt_key"], 
