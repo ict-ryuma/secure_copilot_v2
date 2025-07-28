@@ -1,7 +1,7 @@
 # init_db_teams.py
 # import sqlite3
 import os
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 
 # ✅ 修正: 絶対パスに統一
 DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"

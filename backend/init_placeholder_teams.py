@@ -2,7 +2,7 @@
 # import sqlite3
 import json
 from datetime import datetime
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 
 # DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 

@@ -7,7 +7,6 @@ from .mysql_connector import execute_query
 from mysql.connector import Error
 
 # ✅ 修正: 絶対パスに統一
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
 def init_db():
     """評価ログテーブルを初期化"""

@@ -39,6 +39,7 @@ def get_all_teams_safe() -> List[str]:
         """, fetch=True)
         teams = [row[0] for row in rows]
         print(f"🔍 get_all_teams_safe取得結果: {teams}")
+        print(f"DEBUG: result = {teams}")
         return teams
         
     except Exception as e:
@@ -75,7 +76,6 @@ def validate_team_comprehensive(team_name: str) -> Dict[str, any]:
             WHERE team_name = %s
         """, (team_name,), fetch=True)
         result = rows[0] if (rows and len(rows) > 0) else None
-        
         if not result:
             available_teams = get_all_teams_safe()
             return {
@@ -168,9 +168,6 @@ def register_user(username: str, password: str, team_name: str, is_admin: bool =
         return False, full_message
     
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
-        
         # ✅ 3. ユーザー重複チェック
         rows = execute_query("SELECT username FROM users WHERE username = %s", (username,), fetch=True)
         if rows and len(rows) > 0:
@@ -199,9 +196,6 @@ def login_user(username: str, password: str) -> Tuple[bool, str, bool]:
     戻り値: (成功フラグ, チーム名, 管理者フラグ)
     """
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
-        
         hashed_password = hash_password(password)
         rows = execute_query('''
             SELECT username, team_name, is_admin 
@@ -210,7 +204,6 @@ def login_user(username: str, password: str) -> Tuple[bool, str, bool]:
         ''', (username, hashed_password), fetch=True)
 
         result = rows[0] if (rows and len(rows) > 0) else None
-
         if result:
             username_db, team_name, is_admin = result
             print(f"✅ 基本認証成功: {username_db} → チーム: {team_name}, 管理者: {bool(is_admin)}")
@@ -229,7 +222,7 @@ def verify_user(username: str, password: str) -> Tuple[bool, Dict[str, any]]:
     """
     # ✅ 1. 基本認証
     is_valid, team_name, is_admin = login_user(username, password)
-    
+
     if not is_valid:
         return False, {"error": "認証に失敗しました"}
     
@@ -241,6 +234,7 @@ def verify_user(username: str, password: str) -> Tuple[bool, Dict[str, any]]:
     }
     
     # ✅ 2. チーム包括検証
+
     team_validation = validate_team_comprehensive(team_name)
     
     if not team_validation["valid"]:

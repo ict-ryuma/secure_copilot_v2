@@ -3,6 +3,7 @@
 import os
 import mysql.connector
 
+
 def get_connection():
     """Establish and return a connection to the MySQL database."""
     return mysql.connector.connect(
