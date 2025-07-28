@@ -14,8 +14,7 @@ from backend.save_log import init_db, save_evaluation, already_logged
 from backend.extract_score import extract_scores_and_sections
 from backend.audio_features import extract_audio_features_from_uploaded_file, evaluate_with_gpt
 from backend.auth import init_auth_db
-from backend.prompt_loader import get_prompts_for_team
-# from backend.prompt_loader import get_available_teams_for_user
+from backend.prompt_loader import get_prompts_for_team, get_available_teams_for_user
 
 # --- 初期化 ---
 load_dotenv()
@@ -70,7 +69,10 @@ with st.sidebar:
                     st.stop()
 
             except requests.exceptions.HTTPError as e:
-                st.error("❌ 認証エラー: ユーザー名またはパスワードが間違っています。" if res.status_code == 401 else str(e))
+                # res.responseオブジェクトからステータスコードを取得
+                status_code = e.response.status_code if hasattr(e, 'response') and e.response else 500
+                error_msg = "❌ 認証エラー: ユーザー名またはパスワードが間違っています。" if status_code == 401 else f"❌ HTTPエラー: {str(e)}"
+                st.error(error_msg)
                 st.stop()
             except Exception as e:
                 st.error(f"❌ システムエラー: {e}")
