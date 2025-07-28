@@ -4,7 +4,7 @@ import yaml
 import os
 import codecs
 from datetime import datetime
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 
 # === 定数（score_log.db に統一） ===
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # ~/secure_copilot_v2/

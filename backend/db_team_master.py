@@ -4,7 +4,7 @@
 import json
 from datetime import datetime
 import os
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 
 # ✅ 統一DBパス
 DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
@@ -88,7 +88,7 @@ def insert_team_prompt(name, key, text_prompt, audio_prompt, score_items, notes=
 
     execute_query('''
         INSERT INTO team_master (team_name, prompt_key, text_prompt, audio_prompt, score_items, notes, is_active, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     ''', (name, key, text_prompt, audio_prompt, score_items, notes, is_active, current_time))
 
     # conn.commit()
@@ -102,6 +102,7 @@ def delete_team_prompt(team_id):
     
     # 削除前にチーム名を取得（ログ用）
     rows = execute_query("SELECT team_name FROM team_master WHERE id = %s", (team_id,), fetch=True)
+
     team_name = rows[0][0] if rows else f"ID:{team_id}"
 
     execute_query("DELETE FROM team_master WHERE id = %s", (team_id,))

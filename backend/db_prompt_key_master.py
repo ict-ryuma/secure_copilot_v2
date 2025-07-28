@@ -1,7 +1,7 @@
 # backend/db_prompt_key_master.py
 
 # import sqlite3
-from mysql_connector import execute_query
+from .mysql_connector import execute_query
 import os
 
 # ✅ 修正: 絶対パスに統一
