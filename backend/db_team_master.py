@@ -101,7 +101,8 @@ def delete_team_prompt(team_id):
     # cursor = conn.cursor()
     
     # 削除前にチーム名を取得（ログ用）
-    rows = execute_query("SELECT team_name FROM team_master WHERE id = %s", (team_id,))
+    rows = execute_query("SELECT team_name FROM team_master WHERE id = %s", (team_id,), fetch=True)
+
     team_name = rows[0][0] if rows else f"ID:{team_id}"
 
     execute_query("DELETE FROM team_master WHERE id = %s", (team_id,))

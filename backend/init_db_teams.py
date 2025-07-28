@@ -13,32 +13,30 @@ def create_tables():
     # team_masterテーブル作成
     execute_query("""
     CREATE TABLE IF NOT EXISTS team_master (
-        id INTEGER PRIMARY KEY AUTO_INCREMENT,
-        team_name TEXT UNIQUE NOT NULL,
-        prompt_key TEXT NOT NULL,
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        team_name VARCHAR(50) UNIQUE NOT NULL,
+        prompt_key VARCHAR(50) NOT NULL,
         text_prompt TEXT,
         audio_prompt TEXT,
         score_items TEXT,
         notes TEXT,
-        is_active INTEGER DEFAULT 1,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        is_active TINYINT DEFAULT 1,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
     # prompt_key_masterもついでに作ってもOK
     execute_query("""
     CREATE TABLE IF NOT EXISTS prompt_key_master (
-        id INTEGER PRIMARY KEY AUTO_INCREMENT,
-        prompt_key TEXT,
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        prompt_key VARCHAR(50),
         description TEXT,
-        is_active INTEGER DEFAULT 1,
+        is_active TINYINT DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
-    # conn.commit()
-    # conn.close()
-    print(f"✅ teams & team_master テーブルを初期化しました (DB: {DB_PATH})")
+    print("✅ teams & team_master テーブルを初期化しました")
 
 # ✅ 修正: create_team_table 関数も追加
 def create_team_table():

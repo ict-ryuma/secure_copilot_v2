@@ -78,6 +78,7 @@ def get_team_prompts_verified(team_name: str) -> dict:
             }
         
         # ✅ データ展開（9列対応）
+        result = rows[0]  # 最初の行を取得
         team_id, team_name_db, prompt_key, text_prompt, audio_prompt, score_items_raw, notes, is_active, updated_at = result
         
         # ✅ score_items の安全な変換
@@ -149,8 +150,8 @@ def get_team_prompts_fallback(team_name: str) -> dict:
             SELECT team_name, is_active 
             FROM team_master 
             WHERE team_name = %s
-        """, (team_name,))
-        result = rows[0] if rows else None
+        """, (team_name,), fetch=True)
+        result = rows[0] if (rows and len(rows) > 0) else None
 
         if not result:
             return {
@@ -196,8 +197,8 @@ def get_available_teams_for_user() -> list:
                 WHERE is_active = 1 
                 AND team_name NOT IN ('A_team', 'B_team', 'C_team', 'F_team')
                 ORDER BY team_name
-            """)
-            teams = [row[0] for row in rows]
+            """, fetch=True)
+            teams = [row[0] for row in rows] if rows else []
             print(f"🔍 get_all_teams_safe取得結果: {teams}")
             return teams
         except Exception as e:

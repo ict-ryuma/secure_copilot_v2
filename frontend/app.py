@@ -69,7 +69,10 @@ with st.sidebar:
                     st.stop()
 
             except requests.exceptions.HTTPError as e:
-                st.error("❌ 認証エラー: ユーザー名またはパスワードが間違っています。" if res.status_code == 401 else str(e))
+                # res.responseオブジェクトからステータスコードを取得
+                status_code = e.response.status_code if hasattr(e, 'response') and e.response else 500
+                error_msg = "❌ 認証エラー: ユーザー名またはパスワードが間違っています。" if status_code == 401 else f"❌ HTTPエラー: {str(e)}"
+                st.error(error_msg)
                 st.stop()
             except Exception as e:
                 st.error(f"❌ システムエラー: {e}")
