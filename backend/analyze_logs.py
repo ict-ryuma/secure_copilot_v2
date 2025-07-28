@@ -1,17 +1,21 @@
 # backend/analyze_logs.py（完全版）
 
-import sqlite3
 import pandas as pd
 import json
 from collections import Counter
+from .mysql_connector import get_connection
 
 DB_PATH = "logs.db"
 
 # データ読み込み関数
 def load_logs():
-    with sqlite3.connect(DB_PATH) as conn:
-        df = pd.read_sql_query("SELECT * FROM evaluations", conn)
-    return df
+    conn = get_connection()
+    try:
+        df = pd.read_sql("SELECT * FROM evaluations", conn)
+        return df
+    finally:
+        conn.close()
+
 
 # 営業ごとのスコア平均を抽出（評価スコアはJSONで格納されている前提）
 def get_average_scores_per_member():
