@@ -9,8 +9,8 @@ services:
       - "${APP_REGISTER_PORT}:8504"  # ユーザー登録 (app_register.py)
       - "${PROMPT_KEY_DASHBOARD_PORT}:8505"  # プロンプトキー管理 (prompt_key_dashboard.py)
       - "${API_PORT}:8000"  # API用
-    # env_file:
-    #   - .env
+    env_file:
+      - .env
     volumes:
       - .:/app
     environment:
@@ -19,6 +19,7 @@ services:
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
       DB_NAME: ${MYSQL_DATABASE}
+      APP_ENV: ${APP_ENV}
     depends_on:
       - mysql
     
