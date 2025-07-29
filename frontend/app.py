@@ -340,8 +340,16 @@ if submitted:
                         st.text(full_prompt[:500])
             except requests.exceptions.RequestException as e:
                 st.error(f"❌ リクエストエラー: {e}")
+                with st.expander("🔧 詳細エラー情報"):
+                    st.code(f"エラータイプ: {type(e).__name__}")
+                    st.code(f"エラー詳細: {str(e)}")
             except Exception as e:
                 st.error(f"❌ 予期しないエラー: {e}")
+                with st.expander("🔧 詳細エラー情報"):
+                    st.code(f"エラータイプ: {type(e).__name__}")
+                    st.code(f"エラー詳細: {str(e)}")
+                    import traceback
+                    st.code(f"スタックトレース:\n{traceback.format_exc()}")
 
 # frontend/app.py（プロンプト取得部分の修正）
 # filepath: /Users/ryumahoshi/secure_copilot_v2/frontend/app.py
