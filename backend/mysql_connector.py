@@ -7,13 +7,18 @@ from mysql.connector import pooling
 
 # 接続プール設定
 connection_pool = None
+appEnv=os.environ.get("APP_ENV", "local")
+if appEnv == "local":
+    dbHost="host.docker.internal"
+else:
+    dbHost=os.environ.get("DB_HOST", "mysql")
 
 def init_connection_pool():
     """MySQL接続プールを初期化"""
     global connection_pool
     if connection_pool is None:
         config = {
-            'host': "host.docker.internal",
+            'host': dbHost,
             'user': os.environ.get("DB_USER", "root"),
             'password': os.environ.get("DB_PASSWORD", ""),
             'database': os.environ.get("DB_NAME", ""),
@@ -39,7 +44,7 @@ def get_connection():
         print(f"[ERROR] Failed to get connection from pool: {e}")
         # フォールバック: 直接接続
         return mysql.connector.connect(
-            host="host.docker.internal",
+            host=dbHost,
             user=os.environ.get("DB_USER", "root"),
             password=os.environ.get("DB_PASSWORD", ""),
             database=os.environ.get("DB_NAME", ""),
