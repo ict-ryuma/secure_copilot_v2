@@ -73,7 +73,6 @@ def create_conversation_logs_table():
             gpt_feedback TEXT,
             score DECIMAL(3,1),
             username VARCHAR(50) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             status VARCHAR(20) DEFAULT '未設定',
             followup_date VARCHAR(20),
             tags TEXT,
