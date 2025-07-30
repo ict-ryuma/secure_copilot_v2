@@ -101,9 +101,10 @@ if not st.session_state.logged_in:
     password = st.text_input("パスワード", type="password").strip()
 
     if st.button("ログイン"):
-        success, team_name, is_admin = login_user(username, password)
+        success,id, team_name, is_admin = login_user(username, password)
         if success and is_admin:
             st.session_state.logged_in = True
+            st.session_state.user_id = id
             st.session_state.username = username
             st.session_state.team_name = team_name
             st.session_state.is_admin = True
