@@ -21,7 +21,8 @@ def create_tables():
         score_items TEXT,
         notes TEXT,
         is_active TINYINT DEFAULT 1,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
     """)
 
@@ -32,7 +33,8 @@ def create_tables():
         prompt_key VARCHAR(50),
         description TEXT,
         is_active TINYINT DEFAULT 1,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
     """)
 

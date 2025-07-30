@@ -21,7 +21,8 @@ def create_team_master_table():
             score_items TEXT,
             notes TEXT,
             is_active TINYINT DEFAULT 1,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ''')
     print("✅ team_master テーブル作成完了（9列対応）")

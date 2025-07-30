@@ -62,7 +62,8 @@ def init_placeholder_teams():
             score_items TEXT,
             notes TEXT,
             is_active TINYINT DEFAULT 1,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ''')
     

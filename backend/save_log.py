@@ -13,34 +13,42 @@ def init_db():
     execute_query('''
         CREATE TABLE IF NOT EXISTS evaluation_logs (
             id INT PRIMARY KEY AUTO_INCREMENT,
-            deal_id VARCHAR(100),
+            member_id VARCHAR(10),
             member_name VARCHAR(100),
+            shodan_date DATE,
             outcome VARCHAR(50),
             scores TEXT,
             raw_output TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ''')
     print("✅ evaluation_logs テーブル初期化完了")
 
-def save_evaluation(deal_id, member_name, outcome, parsed_data, raw_output):
+def save_evaluation(member_id, member_name, shodan_date, outcome, parsed_data, raw_output):
     """評価結果をDBに保存"""
-    # conn = sqlite3.connect(DB_PATH)
-    # cursor = conn.cursor()
-    execute_query('''
-        INSERT INTO evaluation_logs (deal_id, member_name, outcome, scores, raw_output)
-        VALUES (%s, %s, %s, %s, %s)
-    ''', (deal_id, member_name, outcome, json.dumps(parsed_data, ensure_ascii=False), raw_output))
-    # conn.commit()
-    # conn.close()
+    try:
+        execute_query('''
+            INSERT INTO evaluation_logs (member_id, member_name, shodan_date, outcome, scores, raw_output)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        ''', (member_id, member_name, shodan_date, outcome, json.dumps(parsed_data, ensure_ascii=False), raw_output))
+    except Exception as e:
+        print("❌ エラー: {}".format(str(e)))
 
-def already_logged(deal_id, member_name):
+def already_logged(member_id):
     """既に同じ評価が保存されているかチェック"""
-    rows = execute_query('''
-        SELECT COUNT(*) FROM evaluation_logs 
-        WHERE deal_id = %s AND member_name = %s
-    ''', (deal_id, member_name))
-    count = rows[0][0] if rows else 0
+    count = 0  # default
+    try:
+        rows = execute_query('''
+            SELECT COUNT(*) FROM evaluation_logs 
+            WHERE member_id = %s
+        ''', (member_id,), fetch=True)
+
+        count = rows[0][0] if rows else 0
+    except Exception as e:
+        # Avoid crash if logging fails
+        pass
+
     return count > 0
 
 def get_all_evaluations():
@@ -68,7 +76,9 @@ def create_conversation_logs_table():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             status VARCHAR(20) DEFAULT '未設定',
             followup_date VARCHAR(20),
-            tags TEXT
+            tags TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ''')
     
@@ -81,13 +91,6 @@ def save_conversation_log(date_str, time_str, customer_name, conversation_text, 
         INSERT INTO conversation_logs (date, time, customer_name, conversation_text, gpt_feedback, score, username, status, followup_date, tags)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (date_str, time_str, customer_name, conversation_text, gpt_feedback, score, username, status, followup_date, tags))
-    # cursor = conn.cursor()
-    # cursor.execute('''
-    #     INSERT INTO conversation_logs (date, time, customer_name, conversation_text, gpt_feedback, score, username, status, followup_date, tags)
-    #     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    # ''', (date_str, time_str, customer_name, conversation_text, gpt_feedback, score, username, status, followup_date, tags))
-    # conn.commit()
-    # conn.close()
 
 def get_conversation_logs(username=None, start_date=None, end_date=None, status_filter=None, customer_filter=None, score_min=None, score_max=None, tag_filter=None):
     """商談ログを取得（フィルター強化版）"""
@@ -190,8 +193,6 @@ def get_followup_schedule(username=None, date_range_days=30, status_filter=None)
     conn = None
     
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
         
         # ✅ 入力値検証・正規化
         if not isinstance(date_range_days, (int, float)) or date_range_days <= 0:
