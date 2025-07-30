@@ -58,10 +58,12 @@ with st.sidebar:
                 res.raise_for_status()
                 result = res.json()
                 team_name = result.get("team_name", "")
+                user_id = result.get("id", "")
                 if team_name:
                     st.session_state.logged_in = True
                     st.session_state.username = username
                     st.session_state.team_name = team_name
+                    st.session_state.user_id = user_id
                     st.session_state.is_admin = result.get("is_admin", False)
                     st.rerun()
                 else:
@@ -252,9 +254,15 @@ st.subheader("👨‍💼 営業評価フォーム")
 with st.form(key="eval_form_1"):
     col1, col2 = st.columns(2)
     with col1:
-        member_name = st.text_input("営業担当者名", placeholder="例：佐藤")
+        member_name = st.text_input(
+            "営業担当者名",
+            key="tantoshamei",
+            value=st.session_state.get("username", ""),
+            placeholder="例：佐藤",
+            disabled=True
+        )
     with col2:
-        deal_id = st.text_input("商談ID", placeholder="例：D123")
+        shodan_date = st.date_input("商談日付", key="shodan_date_input", value=None, help="商談の日付を入力してください（例：2023-01-01）")
     user_input = st.text_area("▼ 商談テキストをここに貼り付けてください", height=300, key="user_input_textarea")
     audio_file = st.file_uploader("🎙️ 音声ファイルをアップロード", type=["wav", "mp3", "m4a", "webm"])
     submitted = st.form_submit_button("🎯 評価・改善提案を受け取る")
@@ -264,6 +272,8 @@ if submitted:
         st.warning("⚠️ テキストが空です。入力してください。")
     elif not custom_prompt.strip():  # ✅ プロンプト空チェック追加
         st.error("❌ 評価プロンプトが設定されていません。管理者にプロンプト設定を依頼してください。")
+    elif shodan_date is None:
+        st.warning("❌ 商談日付が入力されていません。入力してください。")
     else:
         with st.spinner("🧠 GPTによる評価中..."):
             try:
@@ -280,7 +290,7 @@ if submitted:
                 if reply:
                     parsed = extract_scores_and_sections(reply, score_items)
 
-                    st.success(f"✅ 営業評価結果：{member_name or '匿名'}（商談ID: {deal_id or '未指定'}）")
+                    st.success(f"✅ 営業評価結果：{member_name or '匿名'}")
                     st.markdown("### 📝 GPT評価出力")
                     st.markdown(reply.replace("\n", "  \n"))
 
@@ -312,22 +322,13 @@ if submitted:
                             st.success(audio_feedback)
                         except Exception as e:
                             st.error(f"❌ 音声処理エラー: {e}")
-
-                    if already_logged(deal_id, member_name):
-                        st.info("✅ この評価はすでに保存済みです。")
-                    else:
-                        st.markdown("---")
-                        st.subheader("💾 結果登録：成約状況")
-                        cols = st.columns(3)
-                        if cols[0].button("🟢 成約"):
-                            save_evaluation(deal_id, member_name, "成約", parsed, reply)
-                            st.success("✅ 成約として保存しました！")
-                        if cols[1].button("🔴 失注"):
-                            save_evaluation(deal_id, member_name, "失注", parsed, reply)
-                            st.success("✅ 失注として保存しました！")
-                        if cols[2].button("🟡 再商談"):
-                            save_evaluation(deal_id, member_name, "再商談", parsed, reply)
-                            st.success("✅ 再商談として保存しました！")
+                    
+                    st.session_state["form_submitted"] = True
+                    st.session_state["evaluation_saved"] = False
+                    st.session_state["latest_member_name"] = member_name
+                    st.session_state["latest_shodan_date"] = shodan_date
+                    st.session_state["latest_reply"] = reply
+                    st.session_state["latest_parsed"] = parsed
                 else:
                     st.error("❌ GPTからの返信が空です。以下を確認してください：")
                     st.write("1. プロンプト設定が正しいか")
@@ -350,14 +351,49 @@ if submitted:
                     st.code(f"エラー詳細: {str(e)}")
                     import traceback
                     st.code(f"スタックトレース:\n{traceback.format_exc()}")
+# ✅ Show 成約/失注/再商談 only if the previous form was submitted and GPT responded
+if st.session_state.get("form_submitted"):
+    user_id = st.session_state.get("user_id", "")
+    try:
+        alreadyLogged = already_logged(user_id)
+    except Exception as e:
+        st.error(f"❌ Function error: {e}")
+        alreadyLogged = False
+    if alreadyLogged:
+        st.info("✅ この評価はすでに保存済みです。")
+    else:
+        if not st.session_state.get("evaluation_saved"):  # Only show once
+            # with st.form("evaluation_form"):
+                st.markdown("---")
+                st.subheader("💾 結果登録：成約状況")
+                cols = st.columns(3)
 
-# frontend/app.py（プロンプト取得部分の修正）
-# filepath: /Users/ryumahoshi/secure_copilot_v2/frontend/app.py
+                if cols[0].button("🟢 成約"):
+                    st.session_state["outcome"] = "成約"
+                    st.session_state["evaluation_saved"] = True
+                    st.experimental_rerun()
 
-# ...existing imports...
-# from backend.prompt_loader import get_prompts_for_team, get_available_teams_for_user
+                if cols[1].button("🔴 失注"):
+                    st.session_state["outcome"] = "失注"
+                    st.session_state["evaluation_saved"] = True
+                    st.experimental_rerun()
 
-# ...existing code...
+                if cols[2].button("🟡 再商談"):
+                    st.session_state["outcome"] = "再商談"
+                    st.session_state["evaluation_saved"] = True
+                    st.experimental_rerun()
+if st.session_state.get("evaluation_saved") and "outcome" in st.session_state:
+    # Only save once
+    user_id = st.session_state.get("user_id", "")
+    save_evaluation(
+        user_id,
+        member_name,
+        shodan_date,
+        st.session_state["outcome"],
+        st.session_state["latest_parsed"],
+        st.session_state["latest_reply"],
+    )
+    st.success(f"✅ {st.session_state['outcome']}として保存しました！")
 
 # ✅ プロンプト取得とエラーハンドリング（大幅改善）
 def load_team_prompts():
@@ -497,56 +533,6 @@ def main_app():
     # ✅ プロンプトが空の場合の警告
     if not custom_prompt.strip():
         st.warning("⚠️ テキスト評価プロンプトが設定されていません。管理者にお問い合わせください。")
-    
-    # --- 評価フォーム ---
-    st.title("📞 商談テキスト評価AI")
-    st.info("👤 あなたの営業トークをGPTと音声特徴で評価します")
-    
-    # ✅ ユーザー・チーム情報表示
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f"**ユーザー:** `{st.session_state.username}`")
-        st.markdown(f"**チーム:** `{st.session_state.team_name}`")
-    with col2:
-        st.markdown(f"**プロンプトキー:** `{prompts.get('prompt_key', 'default')}`")
-        st.markdown(f"**最終更新:** `{prompts.get('updated_at', 'N/A')}`")
-    
-    # ✅ プロンプト再取得機能
-    if st.button("🔄 プロンプト設定を再取得"):
-        if "prompts" in st.session_state:
-            del st.session_state.prompts
-        st.rerun()
-    
-    # ✅ デバッグ用：現在のプロンプト表示（管理者のみ）
-    if st.session_state.get("is_admin", False):
-        with st.expander("🔧 デバッグ情報（管理者のみ）"):
-            st.write("**現在のプロンプト設定:**")
-            st.text_area("text_prompt", custom_prompt, height=100, disabled=True, key="text_prompt_user_textarea")
-            st.text_area("audio_prompt", audio_prompt, height=50, disabled=True, key="audio_prompt_user_textarea")
-            st.write(f"score_items: {score_items}")
-            st.write(f"prompts全体: {prompts}")
-    
-    # ✅ 評価フォーム部分（既存コードをそのまま使用）
-    st.subheader("👨‍💼 営業評価フォーム")
-    with st.form(key="eval_form_2"):
-        col1, col2 = st.columns(2)
-        with col1:
-            member_name = st.text_input("営業担当者名", placeholder="例：佐藤")
-        with col2:
-            deal_id = st.text_input("商談ID", placeholder="例：D123")
-        user_input = st.text_area("▼ 商談テキストをここに貼り付けてください", height=300, key="user_input_user_textarea")
-        
-        # ✅ 音声ファイルアップロード
-        uploaded_file = st.file_uploader("🎤 音声ファイル（任意）", type=["wav", "mp3", "m4a"])
-        
-        submit_button = st.form_submit_button("🚀 評価を開始")
-    
-    # ✅ 評価処理（既存ロジックを使用）
-    if submit_button and user_input.strip():
-        # 既存の評価処理をここに配置
-        # （GPT評価、音声分析、結果表示など）
-        st.success("評価処理を開始します...")
-        # TODO: 実際の評価ロジックを実装
 
 # ✅ メイン実行部分
 if __name__ == "__main__":

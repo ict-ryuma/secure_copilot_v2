@@ -137,6 +137,7 @@ async def login(data: LoginRequest):
     # ✅ 基本応答
     response = {
         "success": True,
+        "id": info.get("id", ""),
         "team_name": info.get("team_name", ""),
         "is_admin": info.get("is_admin", False),
         "username": data.username

@@ -1,6 +1,6 @@
 # import sqlite3
 import hashlib
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 import os
 from backend.mysql_connector import execute_query
 
@@ -18,7 +18,8 @@ def init_auth_db():
             password_hash VARCHAR(64) NOT NULL,
             team_name VARCHAR(50) NOT NULL,
             is_admin TINYINT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ''')
     print("✅ ユーザーDBを初期化しました")
@@ -190,49 +191,49 @@ def register_user(username: str, password: str, team_name: str, is_admin: bool =
         print(f"❌ ユーザー登録エラー: {str(e)}")
         return False, f"登録中にエラーが発生しました: {str(e)}"
 
-def login_user(username: str, password: str) -> Tuple[bool, str, bool]:
+def login_user(username: str, password: str) -> Tuple[bool, Any, str, bool]:
     """
     ユーザーログイン認証（基本認証のみ）
-    戻り値: (成功フラグ, チーム名, 管理者フラグ)
+    戻り値: (成功フラグ, ユーザーID, チーム名, 管理者フラグ)
     """
     try:
         hashed_password = hash_password(password)
         rows = execute_query('''
-            SELECT username, team_name, is_admin 
+            SELECT id, username, team_name, is_admin 
             FROM users 
             WHERE username = %s AND password_hash = %s
         ''', (username, hashed_password), fetch=True)
 
         result = rows[0] if (rows and len(rows) > 0) else None
         if result:
-            username_db, team_name, is_admin = result
-            print(f"✅ 基本認証成功: {username_db} → チーム: {team_name}, 管理者: {bool(is_admin)}")
-            return True, team_name, bool(is_admin)
+            id, username_db, team_name, is_admin = result
+            print(f"✅ 基本認証成功: {username_db} → チーム: {team_name}, 管理者: {bool(is_admin)}, id: {id}")
+            return True, id, team_name, bool(is_admin)
         else:
             print(f"❌ 基本認証失敗: {username}")
-            return False, "", False
-            
+            return False, "", "", False
+
     except Exception as e:
         print(f"❌ ログイン認証エラー: {str(e)}")
-        return False, "", False
+        return False,"", "", False
 
 def verify_user(username: str, password: str) -> Tuple[bool, Dict[str, any]]:
     """
     ユーザー認証（基本認証 + チーム検証）
     """
     # ✅ 1. 基本認証
-    is_valid, team_name, is_admin = login_user(username, password)
+    is_valid, id, team_name, is_admin = login_user(username, password)
 
     if not is_valid:
         return False, {"error": "認証に失敗しました"}
     
     # ユーザー情報を構築
     user_info = {
+        "id": id,
         "username": username,
         "team_name": team_name,
         "is_admin": is_admin
     }
-    
     # ✅ 2. チーム包括検証
 
     team_validation = validate_team_comprehensive(team_name)
@@ -297,11 +298,7 @@ def update_user_role(username: str, is_admin: bool, team_name: str = None) -> Tu
 def delete_user(username: str) -> bool:
     """ユーザー削除"""
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
         deleted=execute_query("DELETE FROM users WHERE username = %s", (username,))
-        # conn.commit()
-        # conn.close()
 
         if deleted:
             print(f"✅ ユーザー '{username}' を削除しました")
@@ -327,8 +324,6 @@ def user_exists(username: str) -> bool:
 def get_current_user(username: str) -> Dict[str, any]:
     """現在のユーザー情報取得（チーム検証付き）"""
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
         rows = execute_query('''
             SELECT username, team_name, is_admin 
             FROM users 
@@ -358,9 +353,6 @@ def get_current_user(username: str) -> Dict[str, any]:
 def diagnose_team_integrity() -> Dict[str, any]:
     """チーム整合性の包括診断"""
     try:
-        # conn = sqlite3.connect(DB_PATH)
-        # cursor = conn.cursor()
-        
         # 全ユーザー取得
         rows = execute_query("SELECT username, team_name, is_admin FROM users", fetch=True)
         users = rows if (rows and len(rows) > 0) else []
@@ -399,8 +391,6 @@ def diagnose_team_integrity() -> Dict[str, any]:
             "problematic_users": issue_count,
             "health_percentage": round((len(users) - issue_count) / len(users) * 100, 1) if users else 100
         }
-        
-        # conn.close()
         return diagnosis
         
     except Exception as e:

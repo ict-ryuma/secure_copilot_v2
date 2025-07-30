@@ -15,7 +15,8 @@ def create_prompt_key_master_table():
             prompt_key VARCHAR(255) NOT NULL UNIQUE,
             description TEXT,
             is_active TINYINT DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );
     """)
 

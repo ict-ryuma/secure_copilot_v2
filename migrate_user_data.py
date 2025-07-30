@@ -26,11 +26,12 @@ def migrate_users():
             password_hash VARCHAR(64) NOT NULL,
             team_name VARCHAR(50) NOT NULL,
             is_admin TINYINT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     """)
 
-    print("� 管理者ユーザーを作成します")
+    print("✅ 管理者ユーザーを作成します")
     admin_hash = hashlib.sha256("admin123".encode()).hexdigest()
 
     try:
