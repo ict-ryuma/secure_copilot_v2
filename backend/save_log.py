@@ -13,27 +13,47 @@ def init_db():
     execute_query('''
         CREATE TABLE IF NOT EXISTS evaluation_logs (
             id INT PRIMARY KEY AUTO_INCREMENT,
-            member_id VARCHAR(10),
-            member_name VARCHAR(100),
-            shodan_date DATE,
-            outcome VARCHAR(50),
-            scores TEXT,
-            raw_output TEXT,
+            member_id VARCHAR(10) DEFAULT NULL,
+            member_name VARCHAR(100) DEFAULT NULL,
+            shodan_date DATE DEFAULT NULL,
+            outcome VARCHAR(50) DEFAULT NULL,
+            reply TEXT DEFAULT NULL,
+            score_items TEXT DEFAULT NULL,
+            audio_prompt TEXT DEFAULT NULL,
+            full_prompt TEXT DEFAULT NULL,
+            audio_file VARCHAR(255) DEFAULT NULL,
+            audio_features TEXT DEFAULT NULL,
+            audio_feedback TEXT DEFAULT NULL,
+            parsed TEXT DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ''')
     print("✅ evaluation_logs テーブル初期化完了")
 
-def save_evaluation(member_id, member_name, shodan_date, outcome, parsed_data, raw_output):
+def save_evaluation(member_id, member_name, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file, audio_features,audio_feedback, parsed):
     """評価結果をDBに保存"""
     try:
+        # Example: Save uploaded file to disk
+        # if isinstance(audio_file, audio_file):
+        #     file_path = f"audio/{audio_file.name}"
+        #     with open(file_path, "wb") as f:
+        #         f.write(audio_file.read())
+        # else:
+        #     file_path = None  # If already a string path
+        audio_file=""
+        with open("/app/eval_debug.log", "a") as log:
+            log.write(f"🚨 already_logged() called\n")
+            log.write(f"member_name: {member_name}\n")
+            log.write(f"shodan_date: {shodan_date}\n")
         execute_query('''
-            INSERT INTO evaluation_logs (member_id, member_name, shodan_date, outcome, scores, raw_output)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (member_id, member_name, shodan_date, outcome, json.dumps(parsed_data, ensure_ascii=False), raw_output))
+            INSERT INTO evaluation_logs (member_id, member_name, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file,audio_features, audio_feedback, parsed)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (member_id, member_name, shodan_date, outcome, json.dumps(reply, ensure_ascii=False), json.dumps(score_items, ensure_ascii=False), audio_prompt, full_prompt, audio_file, json.dumps(audio_features, ensure_ascii=False),json.dumps(audio_feedback, ensure_ascii=False), json.dumps(parsed, ensure_ascii=False)))
     except Exception as e:
         print("❌ エラー: {}".format(str(e)))
+        with open("/app/eval_debug.log", "a") as log:
+            log.write(f"🚨 already_logged() called: {format(str(e))}\n")
 
 def already_logged(member_id):
     """既に同じ評価が保存されているかチェック"""
@@ -51,9 +71,51 @@ def already_logged(member_id):
 
     return count > 0
 
-def get_all_evaluations():
+def getUniqueEvaluations(member_id=None):
     """全評価ログを取得"""
-    rows = execute_query('SELECT * FROM evaluation_logs ORDER BY created_at DESC')
+    """最新のshodan_dateごとの評価ログを取得"""
+    if member_id:
+        query = '''
+            SELECT el.*
+            FROM evaluation_logs el
+            INNER JOIN (
+                SELECT shodan_date, MAX(created_at) AS max_created
+                FROM evaluation_logs
+                WHERE member_id = %s
+                GROUP BY shodan_date
+            ) latest ON el.shodan_date = latest.shodan_date AND el.created_at = latest.max_created
+            WHERE el.member_id = %s
+            ORDER BY el.shodan_date DESC
+        '''
+        params = (member_id, member_id)
+    else:
+        query = '''
+            SELECT el.*
+            FROM evaluation_logs el
+            INNER JOIN (
+                SELECT shodan_date, MAX(created_at) AS max_created
+                FROM evaluation_logs
+                GROUP BY shodan_date
+            ) latest ON el.shodan_date = latest.shodan_date AND el.created_at = latest.max_created
+            ORDER BY el.shodan_date DESC
+        '''
+        params = ()
+
+    rows = execute_query(query, params, fetch=True)
+    return rows
+def get_all_evaluations(member_id=None, shodan_date=None):
+    """全評価ログを取得"""
+    if member_id and shodan_date:
+        rows = execute_query('SELECT * FROM evaluation_logs WHERE member_id = %s AND shodan_date = %s ORDER BY created_at DESC', (member_id, shodan_date), fetch=True)
+    else:
+        rows = execute_query('SELECT * FROM evaluation_logs ORDER BY created_at DESC', fetch=True)
+    return rows
+def getEvaluationById(id=None):
+    """評価ログをIDで取得"""
+    if id:
+        rows = execute_query('SELECT * FROM evaluation_logs WHERE id = %s', (id,), fetch=True)
+    else:
+        rows = []
     return rows
 
 # ✅ 商談評価ログ管理機能（拡張版）
