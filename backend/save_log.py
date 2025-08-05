@@ -15,6 +15,8 @@ def init_db():
             id INT PRIMARY KEY AUTO_INCREMENT,
             member_id VARCHAR(10) DEFAULT NULL,
             member_name VARCHAR(100) DEFAULT NULL,
+            kintone_id VARCHAR(10) DEFAULT NULL,
+            phone_no VARCHAR(14) DEFAULT NULL,
             shodan_date DATE DEFAULT NULL,
             outcome VARCHAR(50) DEFAULT NULL,
             reply TEXT DEFAULT NULL,
@@ -31,7 +33,7 @@ def init_db():
     ''')
     print("✅ evaluation_logs テーブル初期化完了")
 
-def save_evaluation(member_id, member_name, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file, audio_features,audio_feedback, parsed):
+def save_evaluation(member_id, member_name,kintone_id,phone_no, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file, audio_features,audio_feedback, parsed):
     """評価結果をDBに保存"""
     try:
         # Example: Save uploaded file to disk
@@ -42,14 +44,14 @@ def save_evaluation(member_id, member_name, shodan_date, outcome, reply, score_i
         # else:
         #     file_path = None  # If already a string path
         audio_file=""
-        with open("/app/eval_debug.log", "a") as log:
-            log.write(f"🚨 already_logged() called\n")
-            log.write(f"member_name: {member_name}\n")
-            log.write(f"shodan_date: {shodan_date}\n")
+        # with open("/app/eval_debug.log", "a") as log:
+        #     log.write(f"🚨 already_logged() called\n")
+        #     log.write(f"member_name: {member_name}\n")
+        #     log.write(f"shodan_date: {shodan_date}\n")
         execute_query('''
-            INSERT INTO evaluation_logs (member_id, member_name, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file,audio_features, audio_feedback, parsed)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (member_id, member_name, shodan_date, outcome, json.dumps(reply, ensure_ascii=False), json.dumps(score_items, ensure_ascii=False), audio_prompt, full_prompt, audio_file, json.dumps(audio_features, ensure_ascii=False),json.dumps(audio_feedback, ensure_ascii=False), json.dumps(parsed, ensure_ascii=False)))
+            INSERT INTO evaluation_logs (member_id, member_name, kintone_id, phone_no, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file,audio_features, audio_feedback, parsed)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (member_id, member_name, kintone_id, phone_no, shodan_date, outcome, json.dumps(reply, ensure_ascii=False), json.dumps(score_items, ensure_ascii=False), audio_prompt, full_prompt, audio_file, json.dumps(audio_features, ensure_ascii=False), json.dumps(audio_feedback, ensure_ascii=False), json.dumps(parsed, ensure_ascii=False)))
     except Exception as e:
         print("❌ エラー: {}".format(str(e)))
         with open("/app/eval_debug.log", "a") as log:
