@@ -142,7 +142,7 @@ def setPrompts():
 def evaluationForm():
     st.subheader("👨‍💼 営業評価フォーム")
     with st.form(key="eval_form_1"):
-        col1, col2 = st.columns(2)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             member_name = st.text_input(
                 "営業担当者名",
@@ -152,12 +152,16 @@ def evaluationForm():
                 disabled=True
             )
         with col2:
+            kintone_id = st.text_input("Kintone ID", key="kintone_id", value="", help="KintoneのIDを入力してください", placeholder="例：12345")
+        with col3:
+            phone_no = st.text_input("電話番号", key="phone_no", value="", help="電話番号を入力してください", placeholder="例：080-1234-5678")
+        with col4:
             shodan_date = st.date_input("商談日付", key="shodan_date_input", value=None, help="商談の日付を入力してください（例：2023-01-01）")
         user_input = st.text_area("▼ 商談テキストをここに貼り付けてください", height=300, key="user_input_textarea")
         audio_file = st.file_uploader("🎙️ 音声ファイルをアップロード", type=["wav", "mp3", "m4a", "webm"])
         submitted = st.form_submit_button("🎯 評価・改善提案を受け取る")
-    return member_name, shodan_date, user_input, audio_file, submitted
-def replyProcess(reply,score_items, member_name, shodan_date, audio_prompt,full_prompt,audio_file,audio_features,audio_feedback):
+    return member_name,kintone_id,phone_no, shodan_date, user_input, audio_file, submitted
+def replyProcess(reply,score_items, member_name,kintone_id,phone_no, shodan_date, audio_prompt,full_prompt,audio_file,audio_features,audio_feedback):
     if reply:
         parsed = extract_scores_and_sections(reply, score_items)
 
@@ -206,6 +210,8 @@ def replyProcess(reply,score_items, member_name, shodan_date, audio_prompt,full_
         st.session_state["latest_reply"] = reply
         st.session_state["latest_score_items"] = score_items
         st.session_state["latest_member_name"] = member_name
+        st.session_state["latest_kintone_id"] = kintone_id
+        st.session_state["latest_phone_no"] = phone_no
         st.session_state["latest_shodan_date"] = shodan_date
         st.session_state["latest_audio_prompt"] = audio_prompt
         st.session_state["latest_full_prompt"] = full_prompt
@@ -224,7 +230,7 @@ def replyProcess(reply,score_items, member_name, shodan_date, audio_prompt,full_
             st.write("**送信したプロンプト（最初の500文字）:**")
             st.text(full_prompt[:500])
 def submitEvaluation(custom_prompt, audio_prompt, score_items):
-    member_name, shodan_date, user_input, audio_file, submitted = evaluationForm()
+    member_name,kintone_id,phone_no, shodan_date, user_input, audio_file, submitted = evaluationForm()
     if submitted:
         if not user_input.strip():
             st.warning("⚠️ テキストが空です。入力してください。")
@@ -232,6 +238,8 @@ def submitEvaluation(custom_prompt, audio_prompt, score_items):
             st.error("❌ 評価プロンプトが設定されていません。管理者にプロンプト設定を依頼してください。")
         elif shodan_date is None:
             st.warning("❌ 商談日付が入力されていません。入力してください。")
+        elif not (kintone_id.strip() or phone_no.strip()):
+            st.warning("❌ Kintone ID または電話番号のいずれかを入力してください。")
         else:
             with st.spinner("🧠 GPTによる評価中..."):
                 try:
@@ -244,8 +252,8 @@ def submitEvaluation(custom_prompt, audio_prompt, score_items):
                     res.raise_for_status()
                     reply = res.json().get("reply", "").strip()
                     print(f"🔍 GPT出力の原文（最初の200文字）: '{reply[:200]}...'")
-                    
-                    replyProcess(reply,score_items, member_name, shodan_date, audio_prompt,full_prompt,audio_file, None,None)
+
+                    replyProcess(reply,score_items, member_name,kintone_id,phone_no,shodan_date, audio_prompt,full_prompt,audio_file, None,None)
                 except requests.exceptions.RequestException as e:
                     st.error(f"❌ リクエストエラー: {e}")
                     with st.expander("🔧 詳細エラー情報"):
@@ -297,6 +305,8 @@ def saveEvaluation():
             save_evaluation(
                 user_id,
                 st.session_state["latest_member_name"],
+                st.session_state["latest_kintone_id"],
+                st.session_state["latest_phone_no"],
                 st.session_state["latest_shodan_date"],
                 st.session_state["outcome"],
                 st.session_state["latest_reply"],

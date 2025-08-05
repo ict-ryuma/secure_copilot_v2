@@ -175,17 +175,19 @@ elif st.session_state.view_flag == "evaluation":
     if "eachEvaluation" in st.session_state and st.session_state.eachEvaluation:
         eachEvaluationSession = st.session_state.eachEvaluation[0]
         member_name = eachEvaluationSession[2]  # Member name
-        shodan_date = eachEvaluationSession[3]  # Shodan date
-        outcome = eachEvaluationSession[4]  # Outcome
-        reply = json.loads(eachEvaluationSession[5])  # Assuming this is the reply text
-        score_items = json.loads(eachEvaluationSession[6])  # Score items
-        audio_prompt = eachEvaluationSession[7]  # Audio prompt
-        full_prompt = eachEvaluationSession[8]  # Full prompt text
-        audio_file = eachEvaluationSession[9]  # Audio file
-        audio_features = json.loads(eachEvaluationSession[10])  # Parsed
-        audio_feedback = json.loads(eachEvaluationSession[11])  # Parsed
-        parsed = json.loads(eachEvaluationSession[12])  # Parsed
-        replyProcess(reply,score_items, member_name, shodan_date, audio_prompt,full_prompt, None, audio_features, audio_feedback)
+        kintone_id = eachEvaluationSession[3]  # Kintone ID
+        phone_no = eachEvaluationSession[4]  # Phone number
+        shodan_date = eachEvaluationSession[5]  # Shodan date
+        outcome = eachEvaluationSession[6]  # Outcome
+        reply = json.loads(eachEvaluationSession[7])  # Assuming this is the reply text
+        score_items = json.loads(eachEvaluationSession[8])  # Score items
+        audio_prompt = eachEvaluationSession[9]  # Audio prompt
+        full_prompt = eachEvaluationSession[10]  # Full prompt text
+        audio_file = eachEvaluationSession[11]  # Audio file
+        audio_features = json.loads(eachEvaluationSession[12])  # Parsed
+        audio_feedback = json.loads(eachEvaluationSession[13])  # Parsed
+        parsed = json.loads(eachEvaluationSession[14])  # Parsed
+        replyProcess(reply,score_items, member_name, kintone_id, phone_no, shodan_date, audio_prompt,full_prompt, audio_file, audio_features, audio_feedback)
         st.markdown("---")
         st.subheader("💾 結果登録：成約状況")
         if outcome=="成約":
