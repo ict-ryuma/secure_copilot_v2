@@ -91,6 +91,7 @@ with st.sidebar:
         if st.button("🔄 プロンプト再取得"):
             st.write("ボタンがクリックされました！")  # デバッグ用
             st.session_state["form_submitted"] = False
+            st.session_state["evaluation_select"] = None
             try:
                 team_name = st.session_state.get("team_name", "").strip()
                 if team_name:
@@ -123,7 +124,8 @@ with st.sidebar:
             "評価を選択",
             options=evaluation_options,
             format_func=lambda row: "評価を選んでください" if row is None else f"{row[3]}",
-            index=0
+            index=0,
+            key="evaluation_select"
         )
         # Skip first dummy row if needed
         if selected_row is not None:
