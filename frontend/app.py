@@ -129,6 +129,7 @@ with st.sidebar:
         )
         # Skip first dummy row if needed
         if selected_row is not None:
+            st.session_state.evaluation_saved = True
             selected_id = selected_row[0]
             if "eachEvaluation" in st.session_state and st.session_state.eachEvaluation:
                 del st.session_state["eachEvaluation"]
