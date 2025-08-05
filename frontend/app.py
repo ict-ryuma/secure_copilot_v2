@@ -123,7 +123,7 @@ with st.sidebar:
         selected_row = st.selectbox(
             "評価を選択",
             options=evaluation_options,
-            format_func=lambda row: "評価を選んでください" if row is None else f"{row[3]}",
+            format_func=lambda row: "評価を選んでください" if row is None else f"{row[5]}",
             index=0,
             key="evaluation_select"
         )
@@ -135,13 +135,13 @@ with st.sidebar:
                 del st.session_state["eachEvaluation"]
             
             st.write("▼ 以下の操作を選択してください")
-            allEvaluations = get_all_evaluations(st.session_state.get("user_id", ""), selected_row[3])
+            allEvaluations = get_all_evaluations(st.session_state.get("user_id", ""), selected_row[5])
             for evaluation in allEvaluations:
                 evaluation_id = evaluation[0]  # Use the ID from this row
                 evaluation_member_id = evaluation[1]  # Member ID
-                evaluation_created_at = evaluation[13]  # Created at
-                evaluation_shodan_date = evaluation[3]  # Assuming this is the label like 削除, 編集 etc.
-                evaluation_outcome = evaluation[4]  # Assuming this is the outcome
+                evaluation_created_at = evaluation[15]  # Created at
+                evaluation_shodan_date = evaluation[5]  # Assuming this is the label like 削除, 編集 etc.
+                evaluation_outcome = evaluation[6]  # Assuming this is the outcome
                 evaluation_label = f"{evaluation_created_at}_{evaluation_outcome}"
                 
                 # Make button key unique using selected_id and action
