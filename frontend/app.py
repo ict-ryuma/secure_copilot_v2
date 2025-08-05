@@ -90,7 +90,7 @@ with st.sidebar:
         
         if st.button("🔄 プロンプト再取得"):
             st.write("ボタンがクリックされました！")  # デバッグ用
-            st.session_state["evaluation_saved"] = True
+            st.session_state["form_submitted"] = False
             try:
                 team_name = st.session_state.get("team_name", "").strip()
                 if team_name:
@@ -118,9 +118,7 @@ with st.sidebar:
         st.markdown("---")
         evaluations = getUniqueEvaluations(st.session_state.get("user_id", ""))
         st.session_state.evaluations = evaluations
-        # label_list = evaluations  # Use full rows as selectbox options
         evaluation_options = [None] + evaluations
-
         selected_row = st.selectbox(
             "評価を選択",
             options=evaluation_options,
@@ -130,11 +128,6 @@ with st.sidebar:
         # Skip first dummy row if needed
         if selected_row is not None:
             selected_id = selected_row[0]
-            # st.session_state.get("evaluation_saved")
-            st.session_state["evaluation_saved"] = True
-            st.session_state["form_submitted"] = None
-            # st.success(f"✅ 選択されたアクション: {selected_row[3]} ({selected_row[4]}) - ID: {selected_id}")
-            # st.session_state.view_flag = "evaluation"
             if "eachEvaluation" in st.session_state and st.session_state.eachEvaluation:
                 del st.session_state["eachEvaluation"]
             
@@ -150,13 +143,12 @@ with st.sidebar:
                 
                 # Make button key unique using selected_id and action
                 if st.button(f"{evaluation_label}", key=f"{evaluation_label}_{evaluation_id}"):
-                    # st.write(f"{evaluation_label} 実行中: ID = {evaluation_id}")
                     eachEvaluation = getEvaluationById(evaluation_id)
                     st.session_state.eachEvaluation = eachEvaluation
                     st.session_state.view_flag = "evaluation"
-        else:
-            st.session_state["evaluation_saved"] = True
-            st.session_state["form_submitted"] = None
+        # else:
+        #     st.session_state["evaluation_saved"] = True
+        #     st.session_state["form_submitted"] = None
 
 
 # --- プロンプト取得（ログイン済みチェック） ---
@@ -174,16 +166,11 @@ if not team_name:
 if st.session_state.view_flag == "evaluation_form":
     promptChecking(team_name)
     custom_prompt, audio_prompt, score_items= setPrompts()
-    # evaluationForm()
     submitEvaluation(custom_prompt, audio_prompt, score_items)
     saveEvaluation()
 elif st.session_state.view_flag == "evaluation":
-    # st.success(f"✅ 選択されたアクション: {selected_label} (ID: {selected_id})")
-    # st.success(f"✅ ID: {selected_id}")
     if "eachEvaluation" in st.session_state and st.session_state.eachEvaluation:
-        # st.success(f"✅ EV: {st.session_state.get('eachEvaluation',[])}")
         eachEvaluationSession = st.session_state.eachEvaluation[0]
-
         member_name = eachEvaluationSession[2]  # Member name
         shodan_date = eachEvaluationSession[3]  # Shodan date
         outcome = eachEvaluationSession[4]  # Outcome
