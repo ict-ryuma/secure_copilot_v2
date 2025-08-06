@@ -1,6 +1,8 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from dotenv import load_dotenv
 from admins.sidebar import sidebar
-
 from admins.users import register, userLists
 from admins.teams_and_prompt import teamManage,teamPromptSettings,teamPromptKeyManage,teamPromptKeySettings
 from admins.company_visions import companyVisionLearn

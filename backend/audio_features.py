@@ -14,7 +14,9 @@ import requests
 # ==== 環境変数・API初期化 ====
 load_dotenv()
 API_TYPE = os.getenv("OPENAI_API_TYPE", "openai")
-GPT_API_URL = os.getenv("GPT_API_URL", "http://localhost:8000/secure-gpt-chat") 
+
+BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8000")
+GPT_API_URL = BASE_API_URL+"/secure-gpt-chat"
 
 if API_TYPE == "azure":
     from openai import AzureOpenAI

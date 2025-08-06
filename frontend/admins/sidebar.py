@@ -1,8 +1,5 @@
 import streamlit as st
-from backend.auth import (
-    get_current_user, register_user, get_all_teams, login_user,
-    update_user_role, delete_user
-)
+from backend.auth import get_current_user,login_user
 
 def sidebar():
     with st.sidebar:

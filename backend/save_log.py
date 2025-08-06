@@ -112,6 +112,45 @@ def get_all_evaluations(member_id=None, shodan_date=None):
     else:
         rows = execute_query('SELECT * FROM evaluation_logs ORDER BY created_at DESC', fetch=True)
     return rows
+def get_evaluations_admin(member_id=None, shodan_date_start=None, shodan_date_end=None, kintone_id=None, phone_no=None, score_range=None, outcome=None):
+    """全評価ログを条件に応じて取得"""
+    query = 'SELECT * FROM evaluation_logs WHERE 1=1'
+    params = []
+
+    if member_id:
+        query += ' AND member_id = %s'
+        params.append(member_id)
+
+    if shodan_date_start and shodan_date_end:
+        query += ' AND shodan_date BETWEEN %s AND %s'
+        params.extend([shodan_date_start, shodan_date_end])
+    elif shodan_date_start:
+        query += ' AND shodan_date >= %s'
+        params.append(shodan_date_start)
+    elif shodan_date_end:
+        query += ' AND shodan_date <= %s'
+        params.append(shodan_date_end)
+
+    if kintone_id:
+        query += ' AND kintone_id = %s'
+        params.append(kintone_id)
+
+    if phone_no:
+        query += ' AND phone_no = %s'
+        params.append(phone_no)
+
+    if outcome:
+        query += ' AND outcome = %s'
+        params.append(outcome)
+
+    # if score_range and isinstance(score_range, tuple) and len(score_range) == 2:
+    #     query += ' AND avg_score BETWEEN %s AND %s'
+    #     params.extend(score_range)
+
+    query += ' ORDER BY created_at DESC'
+
+    rows = execute_query(query, tuple(params), fetch=True)
+    return rows
 def getEvaluationById(id=None):
     """評価ログをIDで取得"""
     if id:

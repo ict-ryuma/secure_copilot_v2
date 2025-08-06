@@ -21,9 +21,10 @@ from backend.prompt_loader import get_prompts_for_team, get_available_teams_for_
 load_dotenv()
 init_db()
 init_auth_db()
+BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8000")
 
-LOGIN_API_URL = os.getenv("LOGIN_API_URL", "http://localhost:8000/login")
-GPT_API_URL = os.getenv("GPT_API_URL", "http://localhost:8000/secure-gpt-chat")
+LOGIN_API_URL = BASE_API_URL+"/login"
+GPT_API_URL = BASE_API_URL+"/secure-gpt-chat"
 
 st.set_page_config(page_title="📞 商談テキスト評価AI", layout="wide")
 

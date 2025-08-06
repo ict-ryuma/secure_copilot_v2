@@ -10,7 +10,8 @@ from backend.audio_features import extract_audio_features_from_uploaded_file, ev
 from backend.extract_score import extract_scores_and_sections
 from backend.save_log import save_evaluation
 
-GPT_API_URL = os.getenv("GPT_API_URL", "http://localhost:8000/secure-gpt-chat")
+BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8000")
+GPT_API_URL = BASE_API_URL+"/secure-gpt-chat"
 # --- 音声変換処理 ---
 def convert_to_wav(uploaded_file):
     name, ext = os.path.splitext(uploaded_file.name)
