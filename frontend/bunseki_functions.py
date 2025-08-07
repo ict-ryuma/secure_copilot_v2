@@ -9,6 +9,7 @@ import yaml
 from backend.audio_features import extract_audio_features_from_uploaded_file, evaluate_with_gpt
 from backend.extract_score import extract_scores_and_sections
 from backend.save_log import save_evaluation
+from logger_config import logger
 
 GPT_API_URL = os.getenv("GPT_API_URL", "http://localhost:8000/secure-gpt-chat")
 # --- 音声変換処理 ---
@@ -302,24 +303,42 @@ def saveEvaluation():
         if st.session_state.get("evaluation_saved") and "outcome" in st.session_state:
             # Only save once
             user_id = st.session_state.get("user_id", "")
-            save_evaluation(
-                user_id,
-                st.session_state["latest_member_name"],
-                st.session_state["latest_kintone_id"],
-                st.session_state["latest_phone_no"],
-                st.session_state["latest_shodan_date"],
-                st.session_state["outcome"],
-                st.session_state["latest_reply"],
-                st.session_state["latest_score_items"],
-                st.session_state["latest_audio_prompt"],
-                st.session_state["latest_full_prompt"],
-                st.session_state["latest_audio_file"],
-                st.session_state["latest_audio_features"],
-                st.session_state["latest_audio_feedback"],
-                st.session_state["latest_parsed"],
-            )
-            st.success(f"✅ {st.session_state['outcome']}として保存しました！")
-            st.session_state["form_submitted"] = False
+            logger.info(f"user_id: {user_id}")
+            logger.info(f"latest_member_name: {st.session_state['latest_member_name']}")
+            logger.info(f"latest_kintone_id: {st.session_state['latest_kintone_id']}")
+            logger.info(f"latest_phone_no: {st.session_state['latest_phone_no']}")
+            logger.info(f"latest_shodan_date: {st.session_state['latest_shodan_date']}")
+            logger.info(f"outcome: {st.session_state['outcome']}")
+            logger.info(f"latest_reply: {st.session_state['latest_reply']}")
+            logger.info(f"latest_score_items: {st.session_state['latest_score_items']}")
+            logger.info(f"latest_audio_prompt: {st.session_state['latest_audio_prompt']}")
+            logger.info(f"latest_full_prompt: {st.session_state['latest_full_prompt']}")
+            logger.info(f"latest_audio_file: {st.session_state['latest_audio_file']}")
+            logger.info(f"latest_audio_features: {st.session_state['latest_audio_features']}")
+            logger.info(f"latest_audio_feedback: {st.session_state['latest_audio_feedback']}")
+            logger.info(f"latest_parsed: {st.session_state['latest_parsed']}")
+            try:
+                save_evaluation(
+                    user_id,
+                    st.session_state["latest_member_name"],
+                    st.session_state["latest_kintone_id"],
+                    st.session_state["latest_phone_no"],
+                    st.session_state["latest_shodan_date"],
+                    st.session_state["outcome"],
+                    st.session_state["latest_reply"],
+                    st.session_state["latest_score_items"],
+                    st.session_state["latest_audio_prompt"],
+                    st.session_state["latest_full_prompt"],
+                    st.session_state["latest_audio_file"],
+                    st.session_state["latest_audio_features"],
+                    st.session_state["latest_audio_feedback"],
+                    st.session_state["latest_parsed"],
+                )
+                st.success(f"✅ {st.session_state['outcome']}として保存しました！")
+                st.session_state["form_submitted"] = False
+                logger.info(f"save_evaluation ended successfully for user_id: {user_id}")
+            except Exception as e:
+                logger.error(f"❌ システムエラー: {e}")
 
 def initialize_selectbox():
     st.session_state.selected_action = "操作を選んでください"

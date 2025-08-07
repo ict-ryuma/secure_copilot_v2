@@ -12,3 +12,4 @@ openai
 pandas
 PyYAML
 mysql-connector-python
+loguru
