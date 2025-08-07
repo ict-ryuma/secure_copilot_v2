@@ -10,6 +10,8 @@ import tempfile
 from dotenv import load_dotenv
 from pydub import AudioSegment
 import yaml
+from logger_config import logger
+
 from bunseki_functions import promptChecking,setPrompts,evaluationForm, submitEvaluation,saveEvaluation,replyProcess
 
 from backend.save_log import init_db,getUniqueEvaluations,get_all_evaluations,getEvaluationById
@@ -32,6 +34,7 @@ st.set_page_config(page_title="📞 商談テキスト評価AI", layout="wide")
 # --- ログイン画面 ---
 # --- サイドバー：ログインUI or ログイン情報 ---
 with st.sidebar:
+
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
         st.session_state.username = ""
@@ -307,6 +310,7 @@ def load_team_prompts():
 # ✅ メインロジック部分の修正
 def main_app():
     """メインアプリケーション"""
+   
     
     # ✅ プロンプトが未取得、またはエラーがある場合は取得
     if "prompts" not in st.session_state or not st.session_state.prompts or st.session_state.prompts.get("error", False):
