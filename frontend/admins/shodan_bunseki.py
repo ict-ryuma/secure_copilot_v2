@@ -1,8 +1,10 @@
 import streamlit as st
 from datetime import datetime, date, time
 from backend.save_log import get_evaluations_admin
+import json
 
 from .adminFunctions import get_status_badge
+from bunseki_functions import replyProcess
 
 def shodanBunseki():
     st.subheader("📊 商談記録・分析ダッシュボード")
@@ -128,76 +130,78 @@ def shodanBunseki():
                 log_id = log[0]
                 log_date = log[15]
                 # log_time = log[2] if log[2] else "未設定"
-                customer_name = log[3] or "（顧客名未記入）"
-                conversation_text = log[4]
-                gpt_feedback = log[5]
-                score = log[6]
-                username = log[7]
-                created_at = log[8]
+                customer_name = log[2] or "（顧客名未記入）"
+                conversation_text = log[10]
+                gpt_feedback = log[13]
+                score = log[8]
+                username = log[2]
+                created_at = log[15]
                 status = log[6] if len(log) > 6 else "未設定"
                 followup_date = log[5] if len(log) > 5 else None
                 # tags = log[11] if len(log) > 11 else ""
                 
                 status_badge = get_status_badge(status)
-                title = f"📅 {log_date} | {customer_name} | {status_badge} | 📊 {score or 'N/A'}点"
+                title = f"📅 {log_date} | {customer_name} | {status_badge}"
+                # | 📊 {score or 'N/A'}点"
                 
                 with st.expander(title):
+                    replyProcess(json.loads(log[7]),json.loads(log[8]), log[2],kintone_id,phone_no, log[5], log[9],log[10],log[11],json.loads(log[12]),json.loads(log[13]))
                     # ✅ 基本情報（2列レイアウト）
-                    info_col1, info_col2 = st.columns(2)
-                    with info_col1:
-                        st.markdown("**📋 商談情報**")
-                        st.write(f"📅 実施日時: {log_date}")
-                        st.write(f"👤 お客様: {customer_name}")
-                        st.write(f"📊 AIスコア: {score}点" if score else "📊 AIスコア: 未評価")
-                        st.write(f"🚦 AI分類: {status_badge}")
+                    # info_col1, info_col2 = st.columns(2)
+                    # with info_col1:
+                    #     st.markdown("**📋 商談情報**")
+                    #     st.write(f"📅 実施日時: {log_date}")
+                    #     st.write(f"👤 お客様: {customer_name}")
+                    #     st.write(f"📊 AIスコア: {score}点" if score else "📊 AIスコア: 未評価")
+                    #     st.write(f"🚦 AI分類: {status_badge}")
                     
-                    with info_col2:
-                        st.markdown("**🔍 記録情報**")
-                        st.write(f"📝 担当者: {username}")
-                        st.write(f"📅 登録日時: {created_at}")
-                        if followup_date:
-                            st.write(f"📅 フォロー予定: {followup_date}")
-                        # if tags:
-                        #     st.write(f"🏷️ AIタグ: {tags}")
+                    # with info_col2:
+                    #     st.markdown("**🔍 記録情報**")
+                    #     st.write(f"📝 担当者: {username}")
+                    #     st.write(f"📅 登録日時: {created_at}")
+                    #     if followup_date:
+                    #         st.write(f"📅 フォロー予定: {followup_date}")
+                    #     # if tags:
+                    #     #     st.write(f"🏷️ AIタグ: {tags}")
                     
-                    # ✅ 会話内容表示
-                    if conversation_text:
-                        st.markdown("### 💬 会話内容・商談要約")
-                        st.text_area(
-                            "会話内容", 
-                            conversation_text, 
-                            height=150, 
-                            disabled=True, 
-                            key=f"conv_{log_id}",
-                            help="商談AIシステムで記録された内容"
-                        )
+                    # # ✅ 会話内容表示
+                    # if conversation_text:
+                    #     st.markdown("### 💬 会話内容・商談要約")
+                    #     st.text_area(
+                    #         "会話内容", 
+                    #         conversation_text, 
+                    #         height=150, 
+                    #         disabled=True, 
+                    #         key=f"conv_{log_id}",
+                    #         help="商談AIシステムで記録された内容"
+                    #     )
                     
-                    # ✅ AI評価・フィードバック表示
-                    if gpt_feedback:
-                        st.markdown("### 🤖 AI評価・フィードバック")
-                        st.text_area(
-                            "AI評価", 
-                            gpt_feedback, 
-                            height=150, 
-                            disabled=True, 
-                            key=f"gpt_{log_id}",
-                            help="AIが自動生成した評価とアドバイス"
-                        )
+                    # # ✅ AI評価・フィードバック表示
+                    # if gpt_feedback:
+                    #     st.markdown("### 🤖 AI評価・フィードバック")
+                    #     st.text_area(
+                    #         "AI評価", 
+                    #         gpt_feedback, 
+                    #         height=150, 
+                    #         disabled=True, 
+                    #         key=f"gpt_{log_id}",
+                    #         help="AIが自動生成した評価とアドバイス"
+                    #     )
                     
-                    # ✅ 記録メタデータ（管理者のみ）
-                    if st.session_state.get("is_admin", False):
-                        with st.expander("🔧 記録詳細（管理者のみ）"):
-                            st.code(f"""
-                                記録ID: {log_id}
-                                データソース: 商談AIシステム
-                                登録タイムスタンプ: {created_at}
-                                フィールド数: {len(log)}
-                            """)
+                # ✅ 記録メタデータ（管理者のみ）
+                if st.session_state.get("is_admin", False):
+                    with st.expander("🔧 記録詳細（管理者のみ）"):
+                        st.code(f"""
+                            記録ID: {log_id}
+                            データソース: 商談AIシステム
+                            登録タイムスタンプ: {created_at}
+                            フィールド数: {len(log)}
+                        """)
             
-            # # ✅ ページング情報
-            # if len(logs) > display_limit:
-            #     st.info(f"📄 {display_limit}件を表示中（全{len(logs)}件）")
-            #     st.write("💡 表示件数を変更するか、フィルター条件を調整してください")
+            # ✅ ページング情報
+            if len(logs) > display_limit:
+                st.info(f"📄 {display_limit}件を表示中（全{len(logs)}件）")
+                st.write("💡 表示件数を変更するか、フィルター条件を調整してください")
         else:
             st.info("📭 指定した条件の商談記録は見つかりませんでした")
             st.markdown("""
