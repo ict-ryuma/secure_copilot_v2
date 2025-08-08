@@ -1,6 +1,6 @@
 # import sqlite3
 import hashlib
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple, Any, Union
 import os
 from backend.mysql_connector import execute_query
 
@@ -348,6 +348,49 @@ def get_current_user(username: str) -> Dict[str, any]:
         
     except Exception as e:
         return {"error": f"ユーザー情報取得エラー: {str(e)}"}
+
+def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, any]]:
+    """
+    Get all users or a specific user by ID.
+    Returns a list of user dicts if no user_id is given,
+    or a single user dict if user_id is provided.
+    """
+    try:
+        if user_id:
+            query = '''
+                SELECT id, username, team_name, is_admin
+                FROM users
+                WHERE id = %s
+            '''
+            rows = execute_query(query, (user_id,), fetch=True)
+            if not rows:
+                return {"error": f"User with ID {user_id} not found."}
+            row = rows[0]
+            user_info = {
+                "id": row[0],
+                "username": row[1],
+                "team_name": row[2],
+                "is_admin": bool(row[3])
+            }
+            return user_info
+        else:
+            query = '''
+                SELECT id, username, team_name, is_admin
+                FROM users
+            '''
+            rows = execute_query(query, fetch=True)
+            users = []
+            for row in rows:
+                users.append({
+                    "id": row[0],
+                    "username": row[1],
+                    "team_name": row[2],
+                    "is_admin": bool(row[3])
+                })
+            return users
+
+    except Exception as e:
+        return {"error": f"Error retrieving user(s): {str(e)}"}
 
 # ✅ 診断・デバッグ関数
 def diagnose_team_integrity() -> Dict[str, any]:

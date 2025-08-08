@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime, date, time
 from backend.save_log import get_evaluations_admin
+from backend.auth import get_all_users
 import json
 
 from .adminFunctions import get_status_badge
@@ -11,17 +12,24 @@ def shodanBunseki():
     
     # ✅ 注意書き：データソース説明
     st.info("💡 商談データは商談AIシステムから自動的に保存されます。こちらは閲覧・分析専用です。")
-    
+
     # ✅ 強化されたフィルター設定
     with st.expander("🔍 検索・フィルター設定", expanded=True):
+        users = get_all_users()
+        user_options = [(user["id"], user["username"]) for user in users]
+        # Add "全員" option with id None
+        user_options = [(None, "全員")] + user_options
+        
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            username = st.selectbox(
+            # Show selectbox displaying username
+            selected_user = st.selectbox(
                 "👤 担当者でフィルター",
-                options=["全員"] + [st.session_state.get("username", "")],
-                help="特定の担当者の記録のみ表示"
+                options=user_options,
+                format_func=lambda x: x[1],  # show username
             )
+            selected_user_id = selected_user[0]
             
             status = st.selectbox(
                 "🚦 商談状態",
@@ -81,11 +89,10 @@ def shodanBunseki():
 
     try:
         # ✅ データ取得（フィルター強化版）
-        username_filter = None if username == "全員" else username
         status_filter = None if status == "全て" else status
-        st.success(f"✅ filter_username: {username_filter}. status_filter: {status_filter}, start_date: {shodan_date_start}, end_date: {shodan_date_end}, kintone_id: {kintone_id}, phone_no: {phone_no}, score_range: {score_range}")
+        # st.success(f"✅ filter_username: {selected_user_id}. status_filter: {status_filter}, start_date: {shodan_date_start}, end_date: {shodan_date_end}, kintone_id: {kintone_id}, phone_no: {phone_no}, score_range: {score_range}")
         logs = get_evaluations_admin(
-            2,
+            selected_user_id,
             shodan_date_start,
             shodan_date_end,
             kintone_id,
