@@ -154,6 +154,7 @@ def shodanBunseki():
                 # | 📊 {score or 'N/A'}点"
                 
                 with st.expander(title):
+                    st.caption(f"商談日付: {log[5]} | Kintone ID: {log[3]} | 電話番号: {log[4]}")
                     replyProcess(json.loads(log[7]),json.loads(log[8]), log[2],kintone_id,phone_no, log[5], log[9],log[10],log[11],json.loads(log[12]),json.loads(log[13]))
                     # ✅ 基本情報（2列レイアウト）
                     # info_col1, info_col2 = st.columns(2)
