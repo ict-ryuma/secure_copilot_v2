@@ -333,7 +333,7 @@ def saveEvaluation():
                     st.session_state["latest_audio_file"],
                     st.session_state["latest_audio_features"],
                     st.session_state["latest_audio_feedback"],
-                    st.session_state["latest_parsed"],
+                    # st.session_state["latest_parsed"],
                 )
                 st.success(f"✅ {st.session_state['outcome']}として保存しました！")
                 st.session_state["form_submitted"] = False

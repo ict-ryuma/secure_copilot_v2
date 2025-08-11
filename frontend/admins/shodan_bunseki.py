@@ -78,13 +78,13 @@ def shodanBunseki():
             )
         
         # ✅ スコア範囲フィルター
-        score_range = st.slider(
-            "📊 スコア範囲",
-            min_value=0.0,
-            max_value=100.0,
-            value=(0.0, 100.0),
-            help="AIが評価したスコア範囲で絞り込み"
-        )
+        # score_range = st.slider(
+        #     "📊 スコア範囲",
+        #     min_value=0.0,
+        #     max_value=100.0,
+        #     value=(0.0, 100.0),
+        #     help="AIが評価したスコア範囲で絞り込み"
+        # )
     
 
     try:
@@ -97,7 +97,7 @@ def shodanBunseki():
             shodan_date_end,
             kintone_id,
             phone_no,
-            score_range,
+            # score_range,
             status_filter
         )
         if logs:
@@ -138,17 +138,19 @@ def shodanBunseki():
                 log_date = log[15]
                 # log_time = log[2] if log[2] else "未設定"
                 customer_name = log[2] or "（顧客名未記入）"
-                conversation_text = log[10]
-                gpt_feedback = log[13]
-                score = log[8]
-                username = log[2]
+                # conversation_text = log[10]
+                # gpt_feedback = log[13]
+                # score = log[8]
+                # username = log[2]
                 created_at = log[15]
                 status = log[6] if len(log) > 6 else "未設定"
-                followup_date = log[5] if len(log) > 5 else None
+                # followup_date = log[5] if len(log) > 5 else None
                 # tags = log[11] if len(log) > 11 else ""
                 
                 status_badge = get_status_badge(status)
-                title = f"📅 {log_date} | {customer_name} | {status_badge}"
+                # dt = datetime.strptime(log_date, "%Y-%m-%d %H:%M:%S")
+                formatted = log_date.strftime("%Y年%02m月%02d日 %H時%M分%S秒")
+                title = f"{i+1} 📅 {formatted} | {customer_name} | {status_badge}"
                 # | 📊 {score or 'N/A'}点"
                 
                 with st.expander(title):
@@ -202,7 +204,7 @@ def shodanBunseki():
                             記録ID: {log_id}
                             データソース: 商談AIシステム
                             登録タイムスタンプ: {created_at}
-                            フィールド数: {len(log)}
+                            フィールド数: {len(logs)}
                         """)
             
             # ✅ ページング情報

@@ -188,9 +188,9 @@ elif st.session_state.view_flag == "evaluation":
         audio_prompt = eachEvaluationSession[9]  # Audio prompt
         full_prompt = eachEvaluationSession[10]  # Full prompt text
         audio_file = eachEvaluationSession[11]  # Audio file
-        audio_features = json.loads(eachEvaluationSession[12])  # Parsed
-        audio_feedback = json.loads(eachEvaluationSession[13])  # Parsed
-        parsed = json.loads(eachEvaluationSession[14])  # Parsed
+        audio_features = json.loads(eachEvaluationSession[12])
+        audio_feedback = json.loads(eachEvaluationSession[13])
+        # parsed = json.loads(eachEvaluationSession[14])
         replyProcess(reply,score_items, member_name, kintone_id, phone_no, shodan_date, audio_prompt,full_prompt, audio_file, audio_features, audio_feedback)
         st.markdown("---")
         st.subheader("💾 結果登録：成約状況")

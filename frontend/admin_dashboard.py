@@ -9,8 +9,10 @@ from admins.company_visions import companyVisionLearn
 from admins.shodan_bunseki import shodanBunseki
 from admins.team_performance_dashboard import tpdb
 from admins.followup_management import followupManagement
+from admins.login_check import login
 
 load_dotenv()
+login()
 # sidebar 
 menu = sidebar()
 # --- メニュー分岐 ---

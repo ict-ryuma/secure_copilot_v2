@@ -26,14 +26,22 @@ def init_db():
             audio_file VARCHAR(255) DEFAULT NULL,
             audio_features TEXT DEFAULT NULL,
             audio_feedback TEXT DEFAULT NULL,
-            parsed TEXT DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+            INDEX idx_member_id (member_id),
+            INDEX idx_member_name (member_name),
+            INDEX idx_kintone_id (kintone_id),
+            INDEX idx_phone_no (phone_no),
+            INDEX idx_shodan_date (shodan_date),
+            INDEX idx_outcome (outcome),
+            INDEX idx_member_shodan (member_id, shodan_date),
+            INDEX idx_member_kintone_hone_shodan_outcome (member_id,kintone_id,phone_no,shodan_date,outcome)
         )
     ''')
     print("✅ evaluation_logs テーブル初期化完了")
 
-def save_evaluation(member_id, member_name,kintone_id,phone_no, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file, audio_features,audio_feedback, parsed):
+def save_evaluation(member_id, member_name,kintone_id,phone_no, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file, audio_features,audio_feedback):
     """評価結果をDBに保存"""
     try:
         # Example: Save uploaded file to disk
@@ -50,8 +58,8 @@ def save_evaluation(member_id, member_name,kintone_id,phone_no, shodan_date, out
         #     log.write(f"shodan_date: {shodan_date}\n")
         execute_query('''
             INSERT INTO evaluation_logs (member_id, member_name, kintone_id, phone_no, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file,audio_features, audio_feedback, parsed)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (member_id, member_name, kintone_id, phone_no, shodan_date, outcome, json.dumps(reply, ensure_ascii=False), json.dumps(score_items, ensure_ascii=False), audio_prompt, full_prompt, audio_file, json.dumps(audio_features, ensure_ascii=False), json.dumps(audio_feedback, ensure_ascii=False), json.dumps(parsed, ensure_ascii=False)))
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (member_id, member_name, kintone_id, phone_no, shodan_date, outcome, json.dumps(reply, ensure_ascii=False), json.dumps(score_items, ensure_ascii=False), audio_prompt, full_prompt, audio_file, json.dumps(audio_features, ensure_ascii=False), json.dumps(audio_feedback, ensure_ascii=False)))
     except Exception as e:
         print("❌ エラー: {}".format(str(e)))
         with open("/app/eval_debug.log", "a") as log:
@@ -112,7 +120,7 @@ def get_all_evaluations(member_id=None, shodan_date=None):
     else:
         rows = execute_query('SELECT * FROM evaluation_logs ORDER BY created_at DESC', fetch=True)
     return rows
-def get_evaluations_admin(member_id=None, shodan_date_start=None, shodan_date_end=None, kintone_id=None, phone_no=None, score_range=None, outcome=None):
+def get_evaluations_admin(member_id=None, shodan_date_start=None, shodan_date_end=None, kintone_id=None, phone_no=None, outcome=None, score_range=None,):
     """全評価ログを条件に応じて取得"""
     query = 'SELECT * FROM evaluation_logs WHERE 1=1'
     params = []
@@ -149,6 +157,9 @@ def get_evaluations_admin(member_id=None, shodan_date_start=None, shodan_date_en
 
     query += ' ORDER BY created_at DESC'
 
+    with open("/app/eval_debug.log", "a") as log:
+        log.write(f"🚨 get_evaluations_admin() called\n")
+        log.write(f"query: {query} params: {params}\n")
     rows = execute_query(query, tuple(params), fetch=True)
     return rows
 def getEvaluationById(id=None):
