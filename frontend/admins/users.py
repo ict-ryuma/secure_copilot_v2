@@ -3,8 +3,8 @@ from backend.mysql_connector import execute_query
 from backend.auth import get_all_teams_safe, validate_team_comprehensive, update_user_role, diagnose_team_integrity,delete_user,register_user
 # from backend.prompt_loader import check_team_exists
 
-USER_DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
-PROMPT_DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
+# USER_DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
+# PROMPT_DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 def register():
     st.subheader("👤 新規ユーザー登録")
     new_username = st.text_input("ユーザー名")

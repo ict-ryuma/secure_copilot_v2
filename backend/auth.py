@@ -208,14 +208,14 @@ def login_user(username: str, password: str) -> Tuple[bool, Any, str, bool]:
         if result:
             id, username_db, team_name, is_admin = result
             print(f"✅ 基本認証成功: {username_db} → チーム: {team_name}, 管理者: {bool(is_admin)}, id: {id}")
-            return True, id, team_name, bool(is_admin)
+            return True, id, username_db, team_name, bool(is_admin)
         else:
             print(f"❌ 基本認証失敗: {username}")
-            return False, "", "", False
+            return False, "", "","", False
 
     except Exception as e:
         print(f"❌ ログイン認証エラー: {str(e)}")
-        return False,"", "", False
+        return False,"","", "", False
 
 def verify_user(username: str, password: str) -> Tuple[bool, Dict[str, any]]:
     """
@@ -358,7 +358,7 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
     try:
         if user_id:
             query = '''
-                SELECT id, username, team_name, is_admin
+                SELECT id, username, team_name, is_admin,password_hash
                 FROM users
                 WHERE id = %s
             '''
@@ -370,12 +370,13 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
                 "id": row[0],
                 "username": row[1],
                 "team_name": row[2],
-                "is_admin": bool(row[3])
+                "is_admin": bool(row[3]),
+                "password_hash": row[4]
             }
             return user_info
         else:
             query = '''
-                SELECT id, username, team_name, is_admin
+                SELECT id, username, team_name, is_admin,password_hash
                 FROM users
             '''
             rows = execute_query(query, fetch=True)
@@ -385,7 +386,8 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
                     "id": row[0],
                     "username": row[1],
                     "team_name": row[2],
-                    "is_admin": bool(row[3])
+                    "is_admin": bool(row[3]),
+                    "password_hash": row[4]
                 })
             return users
 

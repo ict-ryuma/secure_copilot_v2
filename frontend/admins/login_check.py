@@ -1,42 +1,37 @@
 import streamlit as st
-from backend.auth import get_current_user,login_user
-def login():
-    # --- セッション初期化 ---
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-        st.session_state.username = ""
-        st.session_state.team_name = ""
-        st.session_state.is_admin = False
+import streamlit_authenticator as stauth
+from streamlit_authenticator import Hasher
+import extra_streamlit_components as stx
+import bcrypt
+from backend.auth import get_all_users,login_user
+from logger_config import logger
+import json
 
-    # --- ログイン画面 ---
-    if not st.session_state.logged_in:
-        st.subheader("🔐 管理者ログイン")
-        username = st.text_input("ユーザー名").strip()
-        password = st.text_input("パスワード", type="password").strip()
+def login_check(app_name=None):
+    cookie_manager = stx.CookieManager(key="cookie_manager_logout")
+    # Restore from cookie if available
+    if "authentication_status" not in st.session_state:
+        st.session_state["authentication_status"] = False
+        logger.info(f"authentication_status1: {st.session_state['authentication_status']}")
+        st.stop
 
-        if st.button("ログイン"):
-            success,id, team_name, is_admin = login_user(username, password)
-            if success and is_admin:
-                st.session_state.logged_in = True
-                st.session_state.user_id = id
-                st.session_state.username = username
-                st.session_state.team_name = team_name
-                st.session_state.is_admin = True
-                st.rerun()
-            elif success:
-                st.error("❌ 管理者ではありません。")
-            else:
-                st.error("❌ ログインに失敗しました。")
-        st.stop()
+    cookie_val = cookie_manager.get(f"{app_name}-user")
+    if isinstance(cookie_val, str):
+        cookie_user_data = json.loads(cookie_val)
+    elif isinstance(cookie_val, dict):
+        cookie_user_data = cookie_val
+    else:
+        cookie_user_data = {}
+    if cookie_user_data:
+        cookie_user_id = cookie_user_data.get("userid")
+        cookie_username = cookie_user_data.get("username")
 
-    st.title("🔧 管理者ダッシュボード")
-    st.write(f"ようこそ、{st.session_state.username}さん！")
-    # --- 管理者権限チェック ---
-    try:
-        user = get_current_user(st.session_state.username)
-        if not user["is_admin"]:
-            st.error("このページは管理者専用です。ログインしてください。")
-            st.stop()
-    except Exception as e:
-        st.error(f"ユーザー情報の取得に失敗しました: {e}")
-        st.stop()
+    if cookie_user_data and cookie_user_id and cookie_username and not st.session_state["authentication_status"]:
+        # Assume session is valid (you could re-check DB here)
+        st.session_state["authentication_status"] = True
+        st.session_state["username"] = cookie_username
+        st.session_state["user_id"] = int(cookie_user_id)
+        
+    return cookie_manager,cookie_user_data
+
+

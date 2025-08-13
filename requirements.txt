@@ -13,3 +13,5 @@ pandas
 PyYAML
 mysql-connector-python
 loguru
+streamlit-authenticator
+streamlit-javascript
