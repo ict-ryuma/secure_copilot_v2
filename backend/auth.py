@@ -358,7 +358,7 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
     try:
         if user_id:
             query = '''
-                SELECT id, username, team_name, is_admin,password_hash
+                SELECT id, username, team_name, is_admin
                 FROM users
                 WHERE id = %s
             '''
@@ -370,13 +370,12 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
                 "id": row[0],
                 "username": row[1],
                 "team_name": row[2],
-                "is_admin": bool(row[3]),
-                "password_hash": row[4]
+                "is_admin": bool(row[3])
             }
             return user_info
         else:
             query = '''
-                SELECT id, username, team_name, is_admin,password_hash
+                SELECT id, username, team_name, is_admin
                 FROM users
             '''
             rows = execute_query(query, fetch=True)
@@ -386,8 +385,7 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
                     "id": row[0],
                     "username": row[1],
                     "team_name": row[2],
-                    "is_admin": bool(row[3]),
-                    "password_hash": row[4]
+                    "is_admin": bool(row[3])
                 })
             return users
 

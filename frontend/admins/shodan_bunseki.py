@@ -5,7 +5,7 @@ from backend.auth import get_all_users
 import json
 
 from .adminFunctions import get_status_badge
-from bunseki_functions import replyProcess
+from users.bunseki_functions import replyProcess
 
 def shodanBunseki():
     st.subheader("📊 商談記録・分析ダッシュボード")

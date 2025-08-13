@@ -12,7 +12,7 @@ from pydub import AudioSegment
 import yaml
 from logger_config import logger
 
-from bunseki_functions import promptChecking,setPrompts,evaluationForm, submitEvaluation,saveEvaluation,replyProcess
+from users.bunseki_functions import promptChecking,setPrompts,evaluationForm, submitEvaluation,saveEvaluation,replyProcess
 
 from backend.save_log import init_db,getUniqueEvaluations,get_all_evaluations,getEvaluationById
 from backend.audio_features import extract_audio_features_from_uploaded_file, evaluate_with_gpt
