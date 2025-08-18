@@ -6,26 +6,6 @@ from datetime import datetime
 import os
 from .mysql_connector import execute_query
 
-# ✅ 統一DBパス
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
-
-def create_team_master_table():
-    """team_masterテーブル作成（9列対応）"""
-    execute_query('''
-        CREATE TABLE IF NOT EXISTS team_master (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            team_name VARCHAR(255) UNIQUE NOT NULL,
-            prompt_key VARCHAR(255) NOT NULL,
-            text_prompt TEXT,
-            audio_prompt TEXT,
-            score_items TEXT,
-            notes TEXT,
-            is_active TINYINT DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-    ''')
-    print("✅ team_master テーブル作成完了（9列対応）")
 
 def fetch_all_team_prompts():
     """全てのチームプロンプトを取得（9列対応）"""
@@ -89,6 +69,3 @@ def delete_team_prompt(team_id):
     execute_query("DELETE FROM team_master WHERE id = %s", (team_id,))
     print(f"✅ チーム '{team_name}' (ID: {team_id}) を削除しました")
 
-# テスト実行（初期化）
-if __name__ == "__main__":
-    create_team_master_table()

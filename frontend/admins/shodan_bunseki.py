@@ -5,9 +5,9 @@ from backend.auth import get_all_users
 import json
 
 from .adminFunctions import get_status_badge
-from users.bunseki_functions import replyProcess
+from users.hyouka_view_process import replyProcess
 
-def shodanBunseki():
+def shodan_bunseki():
     st.subheader("📊 商談記録・分析ダッシュボード")
     
     # ✅ 注意書き：データソース説明
@@ -16,7 +16,8 @@ def shodanBunseki():
     # ✅ 強化されたフィルター設定
     with st.expander("🔍 検索・フィルター設定", expanded=True):
         users = get_all_users()
-        user_options = [(user["id"], user["username"]) for user in users]
+        # st.write(users)
+        user_options = [(user[0], user[2]) for user in users]
         # Add "全員" option with id None
         user_options = [(None, "全員")] + user_options
         
@@ -45,11 +46,6 @@ def shodanBunseki():
                 key="shodan_date_input_start"
             )
             
-            # customer_filter = st.text_input(
-            #     "👤 顧客名検索",
-            #     placeholder="顧客名の一部を入力",
-            #     help="顧客名で部分検索"
-            # )
             kintone_id = st.text_input(
                 "Kintone ID検索",
                 placeholder="Kintone IDの一部を入力",
@@ -63,14 +59,6 @@ def shodanBunseki():
                 help="この日付以前の記録を表示",
                 key="shodan_date_input_end"
             )
-
-            # st.date_input("商談日付", key="shodan_date_input", value=None, help="商談の日付を入力してください（例：2023-01-01）")
-            
-            # tag_filter = st.text_input(
-            #     "🏷️ タグ検索",
-            #     placeholder="タグで検索",
-            #     help="AIが付与したタグで検索"
-            # )
             phone_no = st.text_input(
                 "📞 電話番号検索",
                 placeholder="電話番号で検索",

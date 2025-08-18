@@ -1,17 +1,19 @@
 import streamlit as st
 from backend.mysql_connector import execute_query
-from backend.auth import get_all_teams_safe, validate_team_comprehensive, update_user_role, diagnose_team_integrity,delete_user,register_user
+from backend.auth import get_teams, update_user,register_user,get_all_users
+from logger_config import logger
 # from backend.prompt_loader import check_team_exists
-
-# USER_DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
-# PROMPT_DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 def register():
     st.subheader("👤 新規ユーザー登録")
-    new_username = st.text_input("ユーザー名")
-    new_password = st.text_input("パスワード", type="password")
+    name = st.text_input("名")
+    username = st.text_input("ユーザー名")
+    password = st.text_input("パスワード", type="password")
+    adm_user_id = st.session_state["user_id"]
     
     try:
-        team_options = get_all_teams_safe()  # ✅ 統一関数使用
+        # team_options = get_user_team(user_id)  # ✅ 統一関数使用
+        team_options = get_teams(only_active=1)  # ✅ 統一関数使用
+        # logger.info(f"team_options: {team_options}")
         
         if not team_options:
             st.error("⚠️ 現在利用可能なアクティブチームがありません。")
@@ -28,16 +30,17 @@ def register():
         
         # ✅ チーム選択（プレースホルダー完全排除）
         selected_team = st.selectbox(
-            "チームを選択", 
+            "チームを選択",
             options=team_options,
+            format_func=lambda team: team[1],  # Display team_name
             help="登録済みのアクティブチームのみ選択可能です（プレースホルダーチーム除外）"
         )
         is_admin_flag = st.checkbox("管理者として登録")
 
         if st.button("登録実行"):
-            if new_username.strip() and new_password.strip():
+            if username.strip() and password.strip():
                 # ✅ 修正: register_user の戻り値を適切に処理
-                success, message = register_user(new_username, new_password, selected_team, is_admin_flag)
+                success, message = register_user(name,username, password, selected_team[0], is_admin_flag,adm_user_id)
                 if success:
                     st.success(f"✅ {message}")
                 else:
@@ -58,125 +61,77 @@ def register():
             st.code(f"エラー: {str(e)}")
 
 
-def userLists():
+def user_lists():
     st.subheader("👥 登録ユーザー一覧と編集")
     try:
-        # ユーザー情報取得
-        # conn = sqlite3.connect(USER_DB_PATH)
-        # cursor = conn.cursor()
-        users = execute_query("SELECT username, team_name, is_admin FROM users ORDER BY team_name, username", fetch=True)
-
-        # ✅ 統一関数でチーム一覧取得
-        available_teams = get_all_teams_safe()
-        
-        # ✅ チームが存在しない場合の詳細警告
-        if not available_teams:
-            st.error("⚠️ アクティブなチームがありません。先に「チーム管理」でチームを作成してください。")
-            st.info("💡 現在登録されているユーザーの確認はできますが、チーム変更はできません。")
-            
-            with st.expander("🔧 解決手順"):
-                st.write("1. 「チーム管理」でチームを作成")
-                st.write("2. チームを有効化")
-                st.write("3. このページに戻ってユーザー編集")
-
-        # ✅ 包括的診断機能
-        st.markdown("### 🔧 チーム整合性診断")
-        if st.button("🔍 全ユーザーのチーム状態を診断"):
-            with st.spinner("診断中..."):
-                diagnosis = diagnose_team_integrity()
-                
-                if "error" in diagnosis:
-                    st.error(f"❌ 診断エラー: {diagnosis['error']}")
-                else:
-                    summary = diagnosis["summary"]
-                    st.metric("正常なユーザー", f"{summary['healthy_users']}/{diagnosis['total_users']}", f"{summary['health_percentage']}%")
-                    
-                    if diagnosis["user_issues"]:
-                        st.error(f"🚨 {summary['problematic_users']}件の問題が発見されました")
-                        
-                        for issue in diagnosis["user_issues"]:
-                            with st.expander(f"❌ {issue['username']} ({issue['issue_type']})"):
-                                st.write(f"**チーム:** {issue['team_name']}")
-                                st.write(f"**問題:** {issue['message']}")
-                                st.write("**対処法:**")
-                                for suggestion in issue['suggestions']:
-                                    st.write(f"- {suggestion}")
-                    else:
-                        st.success("✅ 全ユーザーのチーム設定は正常です")
-
+        adm_user_id = st.session_state["user_id"]
+        users= get_all_users()
+        team_options = get_teams()
         if users:
             st.markdown("### 👥 ユーザー一覧")
-            
-            for username, team, is_admin in users:
-                # ✅ 包括的チーム検証
-                team_validation = validate_team_comprehensive(team)
+            for i, user in enumerate(users):
+                user_id, name, username,user_has_team_id, team_id, team_name, is_admin=user
                 
-                with st.expander(f"👤 {username} (チーム: {team})"):
-                    # ✅ チーム状態の詳細表示
-                    if team_validation["valid"]:
-                        st.success("✅ チーム設定は正常です")
-                    else:
-                        st.error(f"❌ {team_validation['message']}")
-                        
-                        # 対処法表示
-                        if "suggestions" in team_validation:
-                            st.write("**対処法:**")
-                            for suggestion in team_validation["suggestions"]:
-                                st.write(f"- {suggestion}")
-                    
+                with st.expander(f"👤 {username} (チーム: {team_name})"):
                     # ✅ ユーザー編集フォーム
-                    with st.form(f"user_form_{username}"):
-                        cols = st.columns([3, 3, 2, 2])
-                        
-                        with cols[0]:
-                            st.markdown(f"**ユーザー名:** {username}")
-                            st.markdown(f"**現在のチーム:** {team}")
-                        
-                        with cols[1]:
-                            # ✅ チーム選択（有効チームのみ）
-                            if available_teams:
-                                try:
-                                    current_index = available_teams.index(team) if team in available_teams else 0
-                                except ValueError:
-                                    current_index = 0
-                                
-                                new_team = st.selectbox(
-                                    "新しいチーム", 
-                                    options=available_teams,
-                                    index=current_index,
-                                    key=f"team_{username}",
-                                    help="アクティブなチームのみ表示（プレースホルダー除外）"
-                                )
-                            else:
-                                st.warning("利用可能なチームなし")
-                                new_team = team
-                        
-                        with cols[2]:
-                            admin_flag = st.checkbox(
-                                "管理者", 
-                                value=bool(is_admin), 
-                                key=f"admin_{username}"
+                    with st.form(f"user_form_{user_id}"):
+                        st.markdown(f"**ユーザー名（ログインID）:** `{username}`")
+                        st.markdown(f"**現在のチーム:** `{team_name}`")
+
+                        col1, col2 = st.columns(2)
+                        default_team_option = next((opt_team for opt_team in team_options if opt_team[0] == team_id), None)
+
+                        with col1:
+                            name_col = st.text_input(
+                                "氏名",
+                                value=name,
+                                key=f"name_{user_id}"
                             )
-                        
-                        with cols[3]:
-                            # ✅ 更新ボタン
-                            if available_teams and st.form_submit_button("💾 更新", type="primary"):
-                                success, message = update_user_role(username, admin_flag, new_team)
-                                
-                                if success:
-                                    st.success(message)
-                                    
-                                    # ✅ セッション同期
-                                    if st.session_state.get("username") == username:
-                                        st.session_state.team_name = new_team
-                                        st.session_state.is_admin = admin_flag
-                                        if "prompts" in st.session_state:
-                                            del st.session_state.prompts
-                                        st.info("🔄 あなたのセッション情報を更新しました")
-                                    
-                                    st.rerun()
-                                else:
-                                    st.error(f"❌ 更新失敗: {message}")
+
+                            selected_team_col = st.selectbox(
+                                "チームを選択",
+                                options=team_options,
+                                format_func=lambda team: team[1],  # Display team_name
+                                help="登録済みのアクティブチームのみ選択可能です（プレースホルダーチーム除外）",
+                                index=team_options.index(default_team_option) if default_team_option else 0,
+                                key=f"team_select_{i}"
+                            )
+                            is_admin_col = st.checkbox(
+                                "管理者として登録",
+                                value=bool(is_admin),
+                                key=f"is_admin_{user_id}"
+                            )
+                        with col2:
+                            username_col = st.text_input(
+                                "ユーザー名（ログインID）",
+                                value=username,
+                                key=f"username_{user_id}"
+                            )
+                            password_col = st.text_input(
+                                "パスワード",
+                                type="password",
+                                placeholder="変更する場合のみ入力",
+                                key=f"password_{user_id}"
+                            )
+
+
+                        submitted = st.form_submit_button("更新する")
+                        if submitted:
+                            # 保存処理呼び出し例
+                            success, msg = update_user(
+                                id=user_id,
+                                name=name_col,
+                                username=username_col,
+                                password=password_col if password_col else None,  # 空なら変更なし
+                                is_admin=1 if is_admin_col else 0,
+                                created_by=adm_user_id,
+                                user_has_team_id=user_has_team_id,
+                                team_id=selected_team_col[0]
+                            )
+                            if success:
+                                st.success(msg)
+                            else:
+                                st.error(msg)
         else:
             st.info("登録されているユーザーがいません。")
             

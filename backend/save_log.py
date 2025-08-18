@@ -8,39 +8,6 @@ from mysql.connector import Error
 
 # ✅ 修正: 絶対パスに統一
 
-def init_db():
-    """評価ログテーブルを初期化"""
-    execute_query('''
-        CREATE TABLE IF NOT EXISTS evaluation_logs (
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            member_id VARCHAR(10) DEFAULT NULL,
-            member_name VARCHAR(100) DEFAULT NULL,
-            kintone_id VARCHAR(10) DEFAULT NULL,
-            phone_no VARCHAR(14) DEFAULT NULL,
-            shodan_date DATE DEFAULT NULL,
-            outcome VARCHAR(50) DEFAULT NULL,
-            reply TEXT DEFAULT NULL,
-            score_items TEXT DEFAULT NULL,
-            audio_prompt TEXT DEFAULT NULL,
-            full_prompt TEXT DEFAULT NULL,
-            audio_file VARCHAR(255) DEFAULT NULL,
-            audio_features TEXT DEFAULT NULL,
-            audio_feedback TEXT DEFAULT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-            INDEX idx_member_id (member_id),
-            INDEX idx_member_name (member_name),
-            INDEX idx_kintone_id (kintone_id),
-            INDEX idx_phone_no (phone_no),
-            INDEX idx_shodan_date (shodan_date),
-            INDEX idx_outcome (outcome),
-            INDEX idx_member_shodan (member_id, shodan_date),
-            INDEX idx_member_kintone_hone_shodan_outcome (member_id,kintone_id,phone_no,shodan_date,outcome)
-        )
-    ''')
-    print("✅ evaluation_logs テーブル初期化完了")
-
 def save_evaluation(member_id, member_name,kintone_id,phone_no, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file, audio_features,audio_feedback):
     """評価結果をDBに保存"""
     try:
@@ -170,36 +137,10 @@ def getEvaluationById(id=None):
         rows = []
     return rows
 
-# ✅ 商談評価ログ管理機能（拡張版）
-def create_conversation_logs_table():
-    """商談評価ログテーブルを作成・拡張（なければ）"""
-    # conn = sqlite3.connect(DB_PATH)
-    # cursor = conn.cursor()
-    
-    # ✅ 基本テーブル作成
-    execute_query('''
-        CREATE TABLE IF NOT EXISTS conversation_logs (
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            date VARCHAR(20) NOT NULL,
-            time VARCHAR(20),
-            customer_name VARCHAR(100),
-            conversation_text TEXT,
-            gpt_feedback TEXT,
-            score DECIMAL(3,1),
-            username VARCHAR(50) NOT NULL,
-            status VARCHAR(20) DEFAULT '未設定',
-            followup_date VARCHAR(20),
-            tags TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    print("✅ conversation_logs テーブル初期化完了")
+
 
 def save_conversation_log(date_str, time_str, customer_name, conversation_text, gpt_feedback, score, username, status="未設定", followup_date=None, tags=""):
     """商談ログを保存（拡張版）"""
-    create_conversation_logs_table()
     execute_query('''
         INSERT INTO conversation_logs (date, time, customer_name, conversation_text, gpt_feedback, score, username, status, followup_date, tags)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -207,7 +148,6 @@ def save_conversation_log(date_str, time_str, customer_name, conversation_text, 
 
 def get_conversation_logs(username=None, start_date=None, end_date=None, status_filter=None, customer_filter=None, score_min=None, score_max=None, tag_filter=None):
     """商談ログを取得（フィルター強化版）"""
-    create_conversation_logs_table()
     
     query = 'SELECT * FROM conversation_logs WHERE 1=1'
     params = []
@@ -251,7 +191,6 @@ def get_conversation_logs(username=None, start_date=None, end_date=None, status_
 
 def get_team_dashboard_stats(team_name=None):
     """チーム別ダッシュボード統計を取得"""
-    create_conversation_logs_table()
     
     query = "SELECT * FROM conversation_logs WHERE 1=1"
     params = []
@@ -302,7 +241,6 @@ def get_team_dashboard_stats(team_name=None):
 
 def get_followup_schedule(username=None, date_range_days=30, status_filter=None):
     """フォローアップ予定を取得（安全性・拡張性強化版）"""
-    create_conversation_logs_table()
     conn = None
     
     try:

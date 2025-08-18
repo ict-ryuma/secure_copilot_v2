@@ -2,27 +2,14 @@
 import hashlib
 from typing import List, Dict, Tuple, Any, Union
 import os
-from backend.mysql_connector import execute_query
+from backend.mysql_connector import execute_query,execute_modify_query
+from logger_config import logger
+from backend.teams import get_teams,get_user_team
 
 
 def hash_password(password: str) -> str:
     """パスワードをSHA256でハッシュ化"""
     return hashlib.sha256(password.encode()).hexdigest()
-
-def init_auth_db():
-    """ユーザーDBの初期化"""
-    execute_query('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            username VARCHAR(50) UNIQUE NOT NULL,
-            password_hash VARCHAR(64) NOT NULL,
-            team_name VARCHAR(50) NOT NULL,
-            is_admin TINYINT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )
-    ''')
-    print("✅ ユーザーDBを初期化しました")
 
 # ✅ 統一チーム取得関数（プレースホルダー完全除外）
 def get_all_teams_safe() -> List[str]:
@@ -147,7 +134,7 @@ def validate_team_comprehensive(team_name: str) -> Dict[str, any]:
             "suggestions": ["システム管理者にお問い合わせください"]
         }
 
-def register_user(username: str, password: str, team_name: str, is_admin: bool = False) -> Tuple[bool, str]:
+def register_user(name,username: str, password: str, team_id: str, is_admin: bool = False,adm_user_id:int=None) -> Tuple[bool, str]:
     """
     ユーザー登録（包括的チーム検証付き）
     """
@@ -156,17 +143,10 @@ def register_user(username: str, password: str, team_name: str, is_admin: bool =
         return False, "ユーザー名が空です"
     if not password or len(password) < 4:
         return False, "パスワードは4文字以上である必要があります"
+    if not team_id:
+        return False, "チーム名が空です"
     
     username = username.strip()
-    team_name = team_name.strip() if team_name else ""
-    
-    # ✅ 2. チーム包括検証
-    team_validation = validate_team_comprehensive(team_name)
-    if not team_validation["valid"]:
-        error_msg = team_validation["message"]
-        suggestions = team_validation.get("suggestions", [])
-        full_message = f"{error_msg}\n対処法: {'; '.join(suggestions)}"
-        return False, full_message
     
     try:
         # ✅ 3. ユーザー重複チェック
@@ -176,20 +156,33 @@ def register_user(username: str, password: str, team_name: str, is_admin: bool =
         
         # ✅ 4. ユーザー登録実行
         hashed_password = hash_password(password)
-        execute_query('''
-            INSERT INTO users (username, password_hash, team_name, is_admin)
-            VALUES (%s, %s, %s, %s)
-        ''', (username, hashed_password, team_name, is_admin))
+        inserted=execute_query('''
+            INSERT INTO users (name,username, password_hash, is_admin,created_by)
+            VALUES (%s, %s, %s, %s,%s)
+        ''', (name,username, hashed_password, is_admin,adm_user_id))
 
-        # conn.commit()
-        # conn.close()
+        # if inserted:
+        userInfos = execute_query("SELECT id FROM users WHERE username = %s", (username,), fetch=True)
+        user_id = userInfos[0][0] if (userInfos and len(userInfos) > 0) else None
+        try:
+            checking_teams = execute_query("SELECT * FROM user_has_teams WHERE user_id = %s AND team_id = %s", (user_id,team_id), fetch=True)
+            if checking_teams and len(checking_teams) > 0:
+                return False, f"ユーザー名 '{username}' はチーム既{team_id}に登録されています"
+            execute_query('''
+            INSERT INTO user_has_teams (user_id,team_id, created_by)
+            VALUES (%s, %s, %s)
+        ''', (user_id,team_id, adm_user_id))
+        except Exception as e:
+            print(f"❌ チーム登録エラー: {str(e)}")
+            return False, f"登録中にエラーが発生しました: {str(e)}"
 
-        print(f"✅ ユーザー登録成功: {username} → {team_name} (管理者: {is_admin})")
-        return True, f"ユーザー '{username}' をチーム '{team_name}' に登録しました"
+        print(f"✅ ユーザー登録成功: {username} → {team_id} (管理者: {is_admin})")
+        return True, f"ユーザー '{username}' をチーム '{team_id}' に登録しました"
         
     except Exception as e:
         print(f"❌ ユーザー登録エラー: {str(e)}")
         return False, f"登録中にエラーが発生しました: {str(e)}"
+
 
 def login_user(username: str, password: str) -> Tuple[bool, Any, str, bool]:
     """
@@ -199,101 +192,154 @@ def login_user(username: str, password: str) -> Tuple[bool, Any, str, bool]:
     try:
         hashed_password = hash_password(password)
         rows = execute_query('''
-            SELECT id, username, team_name, is_admin 
+            SELECT id,name, username, is_admin 
             FROM users 
             WHERE username = %s AND password_hash = %s
         ''', (username, hashed_password), fetch=True)
 
         result = rows[0] if (rows and len(rows) > 0) else None
         if result:
-            id, username_db, team_name, is_admin = result
-            print(f"✅ 基本認証成功: {username_db} → チーム: {team_name}, 管理者: {bool(is_admin)}, id: {id}")
-            return True, id, username_db, team_name, bool(is_admin)
+            id, name, username, is_admin = result
+            try:
+                team=get_user_team(id)
+                # team = teams[0] if (teams and len(teams) > 0) else None
+            except Exception as e:
+                logger.error(f"❌ Team Error: {str(e)}")
+                return False, "", "","", False,""
+            print(f"✅ 基本認証成功: {username} → Name: {name}, 管理者: {bool(is_admin)}, id: {id}")
+            return True, id,name, username, bool(is_admin),team
         else:
             print(f"❌ 基本認証失敗: {username}")
-            return False, "", "","", False
+            return False, "", "","", False,""
 
     except Exception as e:
         print(f"❌ ログイン認証エラー: {str(e)}")
-        return False,"","", "", False
+        return False,"","", "", False,""
 
-def verify_user(username: str, password: str) -> Tuple[bool, Dict[str, any]]:
-    """
-    ユーザー認証（基本認証 + チーム検証）
-    """
-    # ✅ 1. 基本認証
-    is_valid, id, team_name, is_admin = login_user(username, password)
-
-    if not is_valid:
-        return False, {"error": "認証に失敗しました"}
-    
-    # ユーザー情報を構築
-    user_info = {
-        "id": id,
-        "username": username,
-        "team_name": team_name,
-        "is_admin": is_admin
-    }
-    # ✅ 2. チーム包括検証
-
-    team_validation = validate_team_comprehensive(team_name)
-    
-    if not team_validation["valid"]:
-        print(f"⚠️ ログイン後チーム検証失敗: {team_validation['message']}")
-        # チーム問題情報を追加
-        user_info.update({
-            "team_error": team_validation["reason"],
-            "team_message": team_validation["message"],
-            "team_suggestions": team_validation.get("suggestions", [])
-        })
-    else:
-        print(f"✅ ログイン後チーム検証成功: {team_name}")
-    
-    return is_valid, user_info
 
 def update_user_role(username: str, is_admin: bool, team_name: str = None) -> Tuple[bool, str]:
     """
     ユーザーの権限とチームを更新（チーム検証強化版）
     """
-    try:
+    # try:
         # ✅ チーム変更がある場合は検証
-        if team_name is not None:
-            team_validation = validate_team_comprehensive(team_name)
-            if not team_validation["valid"]:
-                error_msg = team_validation["message"]
-                suggestions = team_validation.get("suggestions", [])
-                return False, f"{error_msg}\n対処法: {'; '.join(suggestions)}"
+        # if team_name is not None:
+            # team_validation = validate_team_comprehensive(team_name)
+            # if not team_validation["valid"]:
+            #     error_msg = team_validation["message"]
+            #     suggestions = team_validation.get("suggestions", [])
+            #     return False, f"{error_msg}\n対処法: {'; '.join(suggestions)}"
         
         # conn = sqlite3.connect(DB_PATH)
         # cursor = conn.cursor()
         
-        if team_name is not None:
-            execute_query('''
-                UPDATE users 
-                SET is_admin = %s, team_name = %s 
-                WHERE username = %s
-            ''', (int(is_admin), team_name, username))
-        else:
-            execute_query('''
-                UPDATE users 
-                SET is_admin = %s 
-                WHERE username = %s
-            ''', (int(is_admin), username))
+        # if team_name is not None:
+        #     execute_query('''
+        #         UPDATE users 
+        #         SET is_admin = %s, team_name = %s 
+        #         WHERE username = %s
+        #     ''', (int(is_admin), team_name, username))
+        # else:
+        #     execute_query('''
+        #         UPDATE users 
+        #         SET is_admin = %s 
+        #         WHERE username = %s
+        #     ''', (int(is_admin), username))
 
         # conn.commit()
         # conn.close()
 
-        update_msg = f"ユーザー '{username}' を更新しました"
-        if team_name:
-            update_msg += f" (チーム: {team_name})"
+        # update_msg = f"ユーザー '{username}' を更新しました"
+        # if team_name:
+        #     update_msg += f" (チーム: {team_name})"
         
-        print(f"✅ {update_msg}")
-        return True, update_msg
+        # print(f"✅ {update_msg}")
+        # return True, update_msg
         
+    # except Exception as e:
+    #     error_msg = f"更新中にエラーが発生しました: {str(e)}"
+    #     print(f"❌ {error_msg}")
+    #     return False, error_msg
+def update_user_has_team(user_has_team_id, user_id, team_id, created_by, username):
+    try:
+        # 既存チェック（同じユーザーが同じチームに重複登録されていないか）
+        checking_teams = execute_query(
+            """
+            SELECT * FROM user_has_teams 
+            WHERE user_id = %s AND team_id = %s AND id != %s
+            """,
+            (user_id, team_id, user_has_team_id),
+            fetch=True
+        )
+
+        if checking_teams and len(checking_teams) > 0:
+            return False, f"ユーザー '{username}' はチーム {team_id} に既に登録されています"
+
+        # 正しい UPDATE 文
+        execute_modify_query(
+            """
+            UPDATE user_has_teams
+            SET user_id = %s, team_id = %s, created_by = %s
+            WHERE id = %s
+            """,
+            (user_id, team_id, created_by, user_has_team_id)
+        )
+
+        return True, "✅ ユーザーのチーム情報を更新しました"
+
     except Exception as e:
-        error_msg = f"更新中にエラーが発生しました: {str(e)}"
-        print(f"❌ {error_msg}")
-        return False, error_msg
+        return False, f"チーム更新エラー: {str(e)}"
+
+def update_user(id, name=None, username=None, password=None, is_admin=None, created_by=None,user_has_team_id=None,team_id=None):
+    """
+    Update a users in the database.
+    
+    :param id: user ID to update
+    :param team_id: Team ID
+    :param username:Username ID
+    :param is_admin: Admin status (optional)
+    :return: status and message
+    """
+    updates = []
+    params = []
+
+    rows = execute_query("SELECT username FROM users WHERE username = %s and id != %s", (username,id), fetch=True)
+    if rows and len(rows) > 0:
+        return False, f"ユーザー名 '{username}' は既に登録されています"
+    
+    if name is not None:
+        updates.append("name=%s")
+        params.append(name)
+    if username is not None:
+        updates.append("username=%s")
+        params.append(username)
+    if password is not None:
+        hashed_password = hash_password(password)
+        updates.append("password=%s")
+        params.append(hashed_password)
+    if is_admin is not None:
+        updates.append("is_admin=%s")
+        params.append(is_admin)
+    if created_by is not None:
+        updates.append("created_by=%s")
+        params.append(created_by)
+
+    if not updates:
+        # Nothing to update
+        return 0
+
+    params.append(id)
+    query = f"""
+        UPDATE users
+        SET {', '.join(updates)}
+        WHERE id=%s
+    """
+    try:
+        execute_modify_query(query, tuple(params))
+        return update_user_has_team(user_has_team_id, id, team_id, created_by, username)
+    except Exception as e:
+        return False, f"❌ 更新エラー: {e}"
+    
 
 def delete_user(username: str) -> bool:
     """ユーザー削除"""
@@ -358,35 +404,28 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
     try:
         if user_id:
             query = '''
-                SELECT id, username, team_name, is_admin
-                FROM users
-                WHERE id = %s
+                SELECT u.id as user_id, u.name, u.username,uht.id as user_has_team_id, t.id as team_id, t.team_name, u.is_admin
+                FROM users as u
+                INNER JOIN user_has_teams as uht ON uht.user_id=u.id
+                INNER JOIN teams as t ON t.id=uht.team_id
+                WHERE u.id = %s
             '''
             rows = execute_query(query, (user_id,), fetch=True)
             if not rows:
                 return {"error": f"User with ID {user_id} not found."}
-            row = rows[0]
-            user_info = {
-                "id": row[0],
-                "username": row[1],
-                "team_name": row[2],
-                "is_admin": bool(row[3])
-            }
+            user_info = rows[0]
             return user_info
         else:
             query = '''
-                SELECT id, username, team_name, is_admin
-                FROM users
+                SELECT u.id as user_id, u.name, u.username,uht.id as user_has_team_id, t.id as team_id, t.team_name, u.is_admin
+                FROM users as u
+                INNER JOIN user_has_teams as uht ON uht.user_id=u.id
+                INNER JOIN teams as t ON t.id=uht.team_id
             '''
             rows = execute_query(query, fetch=True)
             users = []
             for row in rows:
-                users.append({
-                    "id": row[0],
-                    "username": row[1],
-                    "team_name": row[2],
-                    "is_admin": bool(row[3])
-                })
+                users.append(row)
             return users
 
     except Exception as e:

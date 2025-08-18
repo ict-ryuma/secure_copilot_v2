@@ -5,20 +5,8 @@ from .mysql_connector import execute_query, execute_select_query, execute_modify
 import os
 
 # ✅ 修正: 絶対パスに統一
-DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
+# DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
-# --- テーブル作成 ---
-def create_prompt_key_master_table():
-    execute_modify_query("""
-        CREATE TABLE IF NOT EXISTS prompt_key_master (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            prompt_key VARCHAR(255) NOT NULL UNIQUE,
-            description TEXT,
-            is_active TINYINT DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        );
-    """)
 
 # --- 新規追加 ---
 def insert_prompt_key(prompt_key, description=""):
@@ -55,7 +43,7 @@ def delete_prompt_key(id):
     execute_modify_query("DELETE FROM prompt_key_master WHERE id = %s", (id,))
 
 # テスト実行（初期化）
-if __name__ == "__main__":
-    create_prompt_key_master_table()
-    insert_prompt_key("A_team", "AI営業チーム")
-    insert_prompt_key("B_team", "サポートチーム")
+# if __name__ == "__main__":
+    # create_prompt_key_master_table()
+    # insert_prompt_key("A_team", "AI営業チーム")
+    # insert_prompt_key("B_team", "サポートチーム")

@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 from .mysql_connector import execute_query
+from logger_config import logger
 
 
 # ✅ 統一DBパス
@@ -16,22 +17,23 @@ def get_prompts_for_team(team_name: str) -> dict:
     
     # ✅ 1. auth.pyの包括的検証を使用
     try:
-        from backend.auth import validate_team_comprehensive
+        # from backend.auth import validate_team_comprehensive
         
-        validation = validate_team_comprehensive(team_name)
+        # validation = validate_team_comprehensive(team_name)
         
-        if not validation["valid"]:
-            # エラー情報をそのまま返す
-            return {
-                "error": True,
-                "error_type": validation["reason"],
-                "message": validation["message"],
-                "suggestions": validation.get("suggestions", []),
-                "team_name": team_name
-            }
+        # if not validation["valid"]:
+        #     # エラー情報をそのまま返す
+        #     return {
+        #         "error": True,
+        #         "error_type": validation["reason"],
+        #         "message": validation["message"],
+        #         "suggestions": validation.get("suggestions", []),
+        #         "team_name": team_name
+        #     }
         
         # ✅ 2. プロンプト取得（検証済みチームのみ）
         prompts = get_team_prompts_verified(team_name)
+        logger.info(prompts)
         
         if prompts.get("error", False):
             return prompts
@@ -79,12 +81,13 @@ def get_team_prompts_verified(team_name: str) -> dict:
         
         # ✅ データ展開（9列対応）
         result = rows[0]  # 最初の行を取得
-        team_id, team_name_db, prompt_key, text_prompt, audio_prompt, score_items_raw, notes, is_active, updated_at = result
+        team_master_id, team_name_db, prompt_key, text_prompt, audio_prompt, score_items_raw, notes, is_active, updated_at = result
         
         # ✅ score_items の安全な変換
         score_items = parse_score_items_safe(score_items_raw)
         
         return {
+            "team_master_id": team_master_id,
             "team_name": team_name_db,
             "prompt_key": prompt_key or f"default_{team_name.lower()}",
             "text_prompt": text_prompt or "デフォルトテキスト評価プロンプト",
