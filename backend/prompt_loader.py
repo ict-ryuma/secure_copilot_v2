@@ -9,53 +9,104 @@ from logger_config import logger
 # ✅ 統一DBパス
 # DB_PATH = "/home/ec2-user/secure_copilot_v2/score_log.db"
 
-def get_prompts_for_team(team_name: str) -> dict:
+def get_prompts_for_team(team_id: int=None, team_name: str=None,is_active=None) -> dict:
     """
-    フロントエンド用：チーム別プロンプト取得（包括的検証版）
+    フロントエンド用：チーム別プロンプト取得（安全版）
     """
-    print(f"🚀 get_prompts_for_team 開始: team_name='{team_name}'")
-    
-    # ✅ 1. auth.pyの包括的検証を使用
+    print(f"🚀 get_prompts_for_team 開始: team_id='{team_id}', team_name='{team_name}', is_active='{is_active}'")
+
     try:
-        # from backend.auth import validate_team_comprehensive
-        
-        # validation = validate_team_comprehensive(team_name)
-        
-        # if not validation["valid"]:
-        #     # エラー情報をそのまま返す
-        #     return {
-        #         "error": True,
-        #         "error_type": validation["reason"],
-        #         "message": validation["message"],
-        #         "suggestions": validation.get("suggestions", []),
-        #         "team_name": team_name
-        #     }
-        
-        # ✅ 2. プロンプト取得（検証済みチームのみ）
-        prompts = get_team_prompts_verified(team_name)
-        logger.info(prompts)
-        
-        if prompts.get("error", False):
-            return prompts
-        
-        # ✅ 3. 正常ケース
-        prompts["error"] = False
-        print(f"✅ get_prompts_for_team 成功: {team_name}")
+        query = """
+            SELECT 
+                thp.id as team_has_prompt_id,
+                thp.prompt_id,
+                t.id as team_id,
+                t.team_name,
+                p.prompt_key,
+                p.text_prompt,
+                p.audio_prompt,
+                p.score_items,
+                p.notes,
+                thp.is_active,
+                thp.created_at,
+                thp.updated_at
+            FROM team_has_prompts as thp
+            INNER JOIN prompts as p ON p.id = thp.prompt_id
+            INNER JOIN teams as t ON t.id = thp.team_id
+            WHERE 1=1
+        """
+        params = []
+
+        if team_id is not None:
+            query += " AND thp.team_id = %s"
+            params.append(team_id)
+
+        if is_active is not None:
+            query += " AND thp.is_active = %s"
+            params.append(is_active)
+
+        # Optional: filter by team_name
+        if team_name is not None:
+            query += " AND t.team_name = %s"
+            params.append(team_name)
+
+        prompts = execute_query(query, tuple(params), fetch=True)
         return prompts
-        
-    except ImportError:
-        # auth.pyが利用できない場合のフォールバック
-        print("⚠️ auth.py の包括検証が利用できません。基本検証を使用します。")
-        return get_team_prompts_fallback(team_name)
+
     except Exception as e:
-        print(f"❌ get_prompts_for_team システムエラー: {str(e)}")
-        return {
-            "error": True,
-            "error_type": "system_error",
-            "message": f"システムエラー: {str(e)}",
-            "suggestions": ["システム管理者にお問い合わせください"],
-            "team_name": team_name
-        }
+        return False, f"❌システムエラー: {str(e)}"
+    # """
+    # フロントエンド用：チーム別プロンプト取得（包括的検証版）
+    # """
+    # print(f"🚀 get_prompts_for_team 開始: team_name='{team_name}'")
+    
+    # # ✅ 1. auth.pyの包括的検証を使用
+    # try:
+        
+    #     # ✅ 2. プロンプト取得（検証済みチームのみ）
+    #     # prompts = get_team_prompts_verified(team_name)
+    #     # logger.info(prompts)
+        
+    #     # if prompts.get("error", False):
+    #     #     return prompts
+        
+    #     # # ✅ 3. 正常ケース
+    #     # prompts["error"] = False
+    #     # print(f"✅ get_prompts_for_team 成功: {team_name}")
+    #     prompts = execute_query("""
+    #         SELECT 
+    #                 thp.id as team_has_prompt_id,
+    #                 t.id as team_id,
+    #                 t.team_name,
+    #                 p.prompt_key,
+    #                 p.text_prompt,
+    #                 p.audio_prompt,
+    #                 p.score_items,
+    #                 p.notes,
+    #                 thp.is_active,
+    #                 thp.created_at,
+    #                 thp.updated_at
+    #         FROM team_has_prompts as thp
+    #         INNER JOIN prompts as p ON p.id=thp.prompt_id
+    #         INNER JOIN teams as t ON t.id=thp.team_id
+    #         WHERE thp.team_id = %s AND thp.is_active = %s
+    #     """, (team_id, 1), fetch=True)
+    #     return prompts
+        
+    # # except ImportError:
+    #     # auth.pyが利用できない場合のフォールバック
+    #     # print("⚠️ auth.py の包括検証が利用できません。基本検証を使用します。")
+    #     # return get_team_prompts_fallback(team_name)
+    # except Exception as e:
+    #     # print(f"❌ get_prompts_for_team システムエラー: {str(e)}")
+    #     return False, f"❌システムエラー: {str(e)}"
+        # return {
+        #     "error": True,
+        #     "error_type": "system_error",
+        #     "message": f"システムエラー: {str(e)}",
+        #     "suggestions": ["システム管理者にお問い合わせください"],
+        #     "team_name": team_name
+        # }
 
 def get_team_prompts_verified(team_name: str) -> dict:
     """検証済みチームからプロンプト設定を取得"""

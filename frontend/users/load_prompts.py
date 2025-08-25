@@ -7,13 +7,43 @@ import os
 def load_team_prompts():
     """チームプロンプトを安全に取得・セッションに保存"""
     team_name = st.session_state.get("team_name", "").strip()
+    team_id = st.session_state.get("team_id", "")
+    user_id = st.session_state.get("user_id", "")
     if not team_name:
         st.error("❌ チーム情報（team_name）が取得できていません。ログインし直してください。")
         st.session_state.logged_in = False
         return False
-    dbPrompts = get_prompts_for_team(team_name)
 
+    dbPrompts = get_prompts_for_team(team_id=team_id, team_name=team_name, is_active=1)
+    return dbPrompts
+
+
+def setPrompts(prompt_options):
+    """プロンプトをセッションに設定"""
+    st.title("📞 商談テキスト評価AI")
+    st.info("👤 あなたの営業トークをGPTと音声特徴で評価します")
+    if not prompt_options or isinstance(prompt_options, tuple) and prompt_options[0] is False:
+        st.error("❌ プロンプトの取得に失敗しました。管理者にお問い合わせください。")
+        return None
     
+    selected_prompts = st.multiselect(
+        "プロンプトを選択",
+        options=prompt_options,
+        default=[],  # nothing selected initially
+        format_func=lambda row: f"{row[4]}",  # Display prompt text
+        help="登録済みのアクティブプロンプトのみ選択可能です",
+        key="prompt_multiselect"
+    )
+    if selected_prompts:
+            for i, selected_prompt in enumerate(selected_prompts):
+                with st.expander(f"🔧 デバッグ情報（管理者のみ）- {selected_prompt[4]}"):
+            # st.write("**現在のプロンプト設定:**")
+                    st.text_area(f"text_prompt", selected_prompt[5], height=100, disabled=True, key="text_prompt_textarea_"+str(i))
+                    st.text_area(f"audio_prompt", selected_prompt[6], height=50, disabled=True, key="audio_prompt_textarea_"+str(i))
+                    st.text_area(f"score_items", selected_prompt[7], height=50, disabled=True, key="score_items_textarea_"+str(i))
+            return selected_prompts
+    return None
+
     # if "prompts" not in st.session_state:
     #     # error_type = prompts.get("error_type", "unknown")
     
@@ -118,40 +148,40 @@ def load_team_prompts():
     #     st.write("Prompt set successfully")
 
 
-def setPrompts():
+# def setPrompts():
     # ✅ セッションからプロンプトを取得
-    prompts = st.session_state.prompts
-    st.success(prompts)
+    # prompts = st.session_state.prompts
+    # st.success(prompts)
 
-    if not prompts or prompts.get("error", False):
-        st.error("プロンプト設定に問題があります。管理者にお問い合わせください。")
-        st.stop()
+    # if not prompts or prompts.get("error", False):
+    #     st.error("プロンプト設定に問題があります。管理者にお問い合わせください。")
+    #     st.stop()
 
     # ✅ 各種プロンプトを展開
-    custom_prompt = prompts.get("text_prompt", "")
-    audio_prompt = prompts.get("audio_prompt", "")
-    score_items = prompts.get("score_items", [])
+    # custom_prompt = prompts.get("text_prompt", "")
+    # audio_prompt = prompts.get("audio_prompt", "")
+    # score_items = prompts.get("score_items", [])
 
     # ✅ デバッグ用：プロンプト内容確認
-    print(f"🔍 取得したプロンプト:")
-    print(f"  - text_prompt: '{custom_prompt[:100]}...' (長さ: {len(custom_prompt)})")
-    print(f"  - audio_prompt: '{audio_prompt[:50]}...' (長さ: {len(audio_prompt)})")
-    print(f"  - score_items: {score_items}")
+    # print(f"🔍 取得したプロンプト:")
+    # print(f"  - text_prompt: '{custom_prompt[:100]}...' (長さ: {len(custom_prompt)})")
+    # print(f"  - audio_prompt: '{audio_prompt[:50]}...' (長さ: {len(audio_prompt)})")
+    # print(f"  - score_items: {score_items}")
 
     # ✅ プロンプトが空の場合の警告
-    if not custom_prompt.strip():
-        st.warning("⚠️ テキスト評価プロンプトが設定されていません。管理者にお問い合わせください。")
+    # if not custom_prompt.strip():
+    #     st.warning("⚠️ テキスト評価プロンプトが設定されていません。管理者にお問い合わせください。")
 
     # --- 評価フォーム ---
-    st.title("📞 商談テキスト評価AI")
-    st.info("👤 あなたの営業トークをGPTと音声特徴で評価します")
+    # st.title("📞 商談テキスト評価AI")
+    # st.info("👤 あなたの営業トークをGPTと音声特徴で評価します")
 
     # ✅ デバッグ用：現在のプロンプト表示（管理者のみ）
-    if st.session_state.get("is_admin", False):
-        with st.expander("🔧 デバッグ情報（管理者のみ）"):
-            st.write("**現在のプロンプト設定:**")
-            st.text_area("text_prompt", custom_prompt, height=100, disabled=True, key="text_prompt_textarea")
-            st.text_area("audio_prompt", audio_prompt, height=50, disabled=True, key="audio_prompt_textarea")
-            st.write(f"score_items: {score_items}")
+    # if st.session_state.get("is_admin", False):
+    #     with st.expander("🔧 デバッグ情報（管理者のみ）"):
+    #         st.write("**現在のプロンプト設定:**")
+    #         st.text_area("text_prompt", custom_prompt, height=100, disabled=True, key="text_prompt_textarea")
+    #         st.text_area("audio_prompt", audio_prompt, height=50, disabled=True, key="audio_prompt_textarea")
+    #         st.write(f"score_items: {score_items}")
     
-    return custom_prompt, audio_prompt, score_items
+    # return custom_prompt, audio_prompt, score_items

@@ -24,6 +24,7 @@ def login_check(app_name=None):
         cookie_user_id = cookie_user_data.get("user_id")
         cookie_username = cookie_user_data.get("username")
         cookie_team_name = cookie_user_data.get("team_name")
+        cookie_team_id = cookie_user_data.get("team_id")
         cookie_is_admin = cookie_user_data.get("is_admin")
 
     if cookie_user_data and cookie_user_id and cookie_username and not st.session_state["authentication_status"]:
@@ -32,6 +33,7 @@ def login_check(app_name=None):
         st.session_state["username"] = cookie_username
         st.session_state["user_id"] = int(cookie_user_id)
         st.session_state["team_name"] = cookie_team_name
+        st.session_state["team_id"] = cookie_team_id
         st.session_state["is_admin"] = cookie_is_admin
         
     return cookie_manager,cookie_user_data

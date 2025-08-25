@@ -5,41 +5,30 @@ from datetime import datetime, date, timedelta
 from pathlib import Path
 from .mysql_connector import execute_query
 from mysql.connector import Error
+from logger_config import logger
 
 # ✅ 修正: 絶対パスに統一
 
-def save_evaluation(member_id, member_name,kintone_id,phone_no, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file, audio_features,audio_feedback):
+def save_evaluation(shodan_id,reply, full_prompt, audio_features,audio_feedback,evaluation_outcome=None,comment=None):
     """評価結果をDBに保存"""
     try:
-        # Example: Save uploaded file to disk
-        # if isinstance(audio_file, audio_file):
-        #     file_path = f"audio/{audio_file.name}"
-        #     with open(file_path, "wb") as f:
-        #         f.write(audio_file.read())
-        # else:
-        #     file_path = None  # If already a string path
-        audio_file=""
-        # with open("/app/eval_debug.log", "a") as log:
-        #     log.write(f"🚨 already_logged() called\n")
-        #     log.write(f"member_name: {member_name}\n")
-        #     log.write(f"shodan_date: {shodan_date}\n")
         execute_query('''
-            INSERT INTO evaluation_logs (member_id, member_name, kintone_id, phone_no, shodan_date, outcome, reply, score_items, audio_prompt, full_prompt, audio_file,audio_features, audio_feedback, parsed)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (member_id, member_name, kintone_id, phone_no, shodan_date, outcome, json.dumps(reply, ensure_ascii=False), json.dumps(score_items, ensure_ascii=False), audio_prompt, full_prompt, audio_file, json.dumps(audio_features, ensure_ascii=False), json.dumps(audio_feedback, ensure_ascii=False)))
+            INSERT INTO evaluation_logs (shodan_id, reply, full_prompt, audio_features, audio_feedback, evaluation_outcome, comment)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (shodan_id, json.dumps(reply, ensure_ascii=False), full_prompt, json.dumps(audio_features, ensure_ascii=False), json.dumps(audio_feedback, ensure_ascii=False), evaluation_outcome, comment))
+        return True, "✅ 評価ログが保存されました！"
     except Exception as e:
-        print("❌ エラー: {}".format(str(e)))
-        with open("/app/eval_debug.log", "a") as log:
-            log.write(f"🚨 already_logged() called: {format(str(e))}\n")
+        logger.info(f"❌ 評価ログの保存に失敗しました。 エラー: {str(e)}")
+        return False, "❌ 評価ログの保存に失敗しました。"
 
-def already_logged(member_id):
+def already_logged(shodan_id):
     """既に同じ評価が保存されているかチェック"""
     count = 0  # default
     try:
         rows = execute_query('''
             SELECT COUNT(*) FROM evaluation_logs 
-            WHERE member_id = %s
-        ''', (member_id,), fetch=True)
+            WHERE shodan_id = %s
+        ''', (shodan_id,), fetch=True)
 
         count = rows[0][0] if rows else 0
     except Exception as e:

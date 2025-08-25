@@ -16,3 +16,4 @@ __pycache__/
 docker/mysql/data/*
 logs/*
 DBLIVE/*
+uploads/*

@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 print("✅ 実行中ファイル:", __file__)
 from openai import AzureOpenAI, OpenAI
-from backend.auth import verify_user
+# from backend.auth import verify_user
 import streamlit as st
+from logger_config import logger
 
 # === FastAPI アプリ作成 ===
 app = FastAPI()
@@ -60,11 +61,14 @@ class LoginRequest(BaseModel):
     password: str
 
 # === チャットエンドポイント ===
+# @app.post("/secure-gpt-chat")
+# async def secure_chat(payload: ChatInput):
 @app.post("/secure-gpt-chat")
-async def secure_chat(payload: ChatInput):
+def secure_chat(payload: ChatInput):
     try:
         print("📥 user_message 受信:")
         print(payload.user_message[:1000])  # ✅ payload.text → payload.user_message
+        logger.info(f"📥 user_message 受信: {payload.user_message[:100]}...")  # ログ出力
 
         response = client.chat.completions.create(
             model=MODEL,
@@ -119,40 +123,40 @@ async def alias_chat(payload: ChatInput):
     return await secure_chat(payload)
 
 # === 🔐 ログインエンドポイント ===
-from backend.auth import verify_user  # ✅ 差し替えポイント！
+# from backend.auth import verify_user  # ✅ 差し替えポイント！
 
-@app.post("/login")
-async def login(data: LoginRequest):
-    is_valid, info = verify_user(data.username, data.password)
+# @app.post("/login")
+# async def login(data: LoginRequest):
+#     is_valid, info = verify_user(data.username, data.password)
 
-    print("🛰️ /login 受信 username:", data.username)
-    print("✅ verify_user result:", is_valid, info)
+#     print("🛰️ /login 受信 username:", data.username)
+#     print("✅ verify_user result:", is_valid, info)
 
-    if not is_valid:
-        return {
-            "success": False,
-            "message": info.get("error", "認証に失敗しました")
-        }
+#     if not is_valid:
+#         return {
+#             "success": False,
+#             "message": info.get("error", "認証に失敗しました")
+#         }
 
-    # ✅ 基本応答
-    response = {
-        "success": True,
-        "id": info.get("id", ""),
-        "team_name": info.get("team_name", ""),
-        "is_admin": info.get("is_admin", False),
-        "username": data.username
-    }
+#     # ✅ 基本応答
+#     response = {
+#         "success": True,
+#         "id": info.get("id", ""),
+#         "team_name": info.get("team_name", ""),
+#         "is_admin": info.get("is_admin", False),
+#         "username": data.username
+#     }
     
-    # ✅ チーム問題がある場合は詳細情報を追加
-    if "team_error" in info:
-        response.update({
-            "team_error": info["team_error"],
-            "team_message": info["team_message"],
-            "team_suggestions": info.get("team_suggestions", [])
-        })
-        print(f"⚠️ ログイン時チーム問題検出: {info['team_error']}")
+#     # ✅ チーム問題がある場合は詳細情報を追加
+#     if "team_error" in info:
+#         response.update({
+#             "team_error": info["team_error"],
+#             "team_message": info["team_message"],
+#             "team_suggestions": info.get("team_suggestions", [])
+#         })
+#         print(f"⚠️ ログイン時チーム問題検出: {info['team_error']}")
     
-    return response
+#     return response
 
 # === ✅ デバッグ用エンドポイント ===
 @app.get("/debug-user")
@@ -243,28 +247,28 @@ def get_available_teams_api():
         }
 
 # ✅ 既存のデバッグエンドポイントを拡張
-@app.get("/debug-prompts/{team_name}")
-def debug_prompts(team_name: str):
-    try:
-        from backend.prompt_loader import get_prompts_for_team, debug_team_prompts, check_team_exists
+# @app.get("/debug-prompts/{team_name}")
+# def debug_prompts(team_name: str):
+#     try:
+#         from backend.prompt_loader import get_prompts_for_team, debug_team_prompts, check_team_exists
         
-        # 各種デバッグ情報を取得
-        prompts = get_prompts_for_team(team_name)
-        team_status = check_team_exists(team_name)
-        debug_info = debug_team_prompts(team_name)
+#         # 各種デバッグ情報を取得
+#         prompts = get_prompts_for_team(team_name)
+#         team_status = check_team_exists(team_name)
+#         debug_info = debug_team_prompts(team_name)
         
-        return {
-            "team_name": team_name,
-            "prompts_result": prompts,
-            "team_status": team_status,
-            "debug_info": debug_info,
-            "db_path": "/home/ec2-user/secure_copilot_v2/score_log.db"
-        }
-    except Exception as e:
-        return {
-            "team_name": team_name,
-            "error": str(e)
-        }
+#         return {
+#             "team_name": team_name,
+#             "prompts_result": prompts,
+#             "team_status": team_status,
+#             "debug_info": debug_info,
+#             "db_path": "/home/ec2-user/secure_copilot_v2/score_log.db"
+#         }
+#     except Exception as e:
+#         return {
+#             "team_name": team_name,
+#             "error": str(e)
+#         }
 
 # ✅ チャットエンドポイントでチーム別プロンプト使用
 class ChatInputWithTeam(BaseModel):

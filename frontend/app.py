@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 from logger_config import logger
 
-from users.hyouka_lists import hyouka_list_view
+from users.hyouka_lists import mi_hyouka_list_view,hyouka_list_view
 
 from admins.login_check import login_check,login
 from admins.logout import logout
@@ -42,11 +42,13 @@ if st.session_state["authentication_status"] and cookie_user_data:
     # --- サイドバー：ログインUI or ログイン情報 ---
     with st.sidebar:
         menu = menu()
-    if menu == "評価を作成":
+    if menu == "商談を作成":
         hyouka_form()
-    if menu == "🔄 プロンプト再取得":
-        load_team_prompts() 
-    if menu == "評価を選択":
+    # if menu == "🔄 プロンプト再取得":
+    #     load_team_prompts() 
+    if menu == "未評価の商談を選択してください":
+        mi_hyouka_list_view() 
+    if menu == "評価の商談を選択してください":
         hyouka_list_view() 
     elif menu == "🔓 ログアウト":
         logout(cookie_manager,app_name) 

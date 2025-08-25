@@ -124,11 +124,12 @@ def create_evaluation_logs_table():
         CREATE TABLE IF NOT EXISTS evaluation_logs (
             id INT PRIMARY KEY AUTO_INCREMENT,
             shodan_id INT NOT NULL,
-            outcome VARCHAR(50) DEFAULT NULL,
             reply TEXT DEFAULT NULL,
             full_prompt TEXT DEFAULT NULL,
             audio_features TEXT DEFAULT NULL,
             audio_feedback TEXT DEFAULT NULL,
+            evaluation_outcome VARCHAR(10) DEFAULT NULL COMMENT 'Evaluation outcome after evaluation. (e.g., pass/fail/score code)',
+            comment VARCHAR(5) DEFAULT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_shodan_id (shodan_id)

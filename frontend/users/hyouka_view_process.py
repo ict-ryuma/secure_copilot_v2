@@ -4,9 +4,10 @@ from backend.extract_score import extract_scores_and_sections
 
 from logger_config import logger
 
-def replyProcess(reply,score_items, member_name,kintone_id,phone_no, shodan_date, audio_prompt,full_prompt,audio_file,audio_features,audio_feedback):
+def replyProcess(reply,member_name,score_items, audio_prompt,full_prompt,audio_file,audio_features,audio_feedback):
     if reply:
         parsed = extract_scores_and_sections(reply, score_items)
+        logger.info(f"✅ GPT返信解析成功: {parsed}")
 
         st.success(f"✅ 営業評価結果：{member_name or '匿名'}")
         st.markdown("### 📝 GPT評価出力")
@@ -30,9 +31,10 @@ def replyProcess(reply,score_items, member_name,kintone_id,phone_no, shodan_date
 
         if audio_file:
             try:
-                wav_path = convert_to_wav(audio_file)
+                # wav_path = convert_to_wav(audio_file)
+                # wav_path = audio_file
                 st.markdown("### 🎧 音声特徴量（参考）")
-                audio_features = extract_audio_features_from_uploaded_file(wav_path)
+                audio_features = extract_audio_features_from_uploaded_file(audio_file)
                 st.json(audio_features)
 
                 audio_feedback = evaluate_with_gpt(f"{audio_prompt}\n\n{audio_features}")
@@ -46,22 +48,7 @@ def replyProcess(reply,score_items, member_name,kintone_id,phone_no, shodan_date
 
             st.markdown("### 🤖 GPTによる音声評価")
             st.success(audio_feedback)
-        
-        st.session_state["form_submitted"] = True
-        st.session_state["evaluation_saved"] = False
-
-        st.session_state["latest_reply"] = reply
-        st.session_state["latest_score_items"] = score_items
-        st.session_state["latest_member_name"] = member_name
-        st.session_state["latest_kintone_id"] = kintone_id
-        st.session_state["latest_phone_no"] = phone_no
-        st.session_state["latest_shodan_date"] = shodan_date
-        st.session_state["latest_audio_prompt"] = audio_prompt
-        st.session_state["latest_full_prompt"] = full_prompt
-        st.session_state["latest_audio_file"] = audio_file
-        st.session_state["latest_parsed"] = parsed
-        st.session_state["latest_audio_features"] = audio_features if audio_features else None
-        st.session_state["latest_audio_feedback"] = audio_feedback if audio_feedback else None
+        return True, audio_features,audio_feedback
     else:
         st.error("❌ GPTからの返信が空です。以下を確認してください：")
         st.write("1. プロンプト設定が正しいか")
@@ -72,3 +59,4 @@ def replyProcess(reply,score_items, member_name,kintone_id,phone_no, shodan_date
         if st.session_state.get("is_admin", False):
             st.write("**送信したプロンプト（最初の500文字）:**")
             st.text(full_prompt[:500])
+        return False,"",""
