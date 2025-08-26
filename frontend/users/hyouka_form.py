@@ -25,8 +25,8 @@ GPT_API_URL = BASE_API_URL+"/secure-gpt-chat"
 def evaluationForm(dbPrompts):
     user_id=st.session_state.get("user_id", "")
     team_id=st.session_state.get("team_id", "")
-    selected_prompts=setPrompts(dbPrompts)
-    # st.write(selected_prompts)
+    # selected_prompts=setPrompts(dbPrompts)
+    # st.write(dbPrompts)
     st.subheader("👨‍💼 営業評価フォーム")
     # with st.form(key="eval_form_1"):
     col1, col2, col3, col4 = st.columns(4)
@@ -60,15 +60,15 @@ def evaluationForm(dbPrompts):
 
     if st.button("💾保存", key="save_button"):
         audio_file_path =None
-        if selected_prompts is None:
-            st.error("❌ プロンプトが選択されていません。プロンプトを選択してください。")
-            st.stop()
+        # if selected_prompts is None:
+        #     st.error("❌ プロンプトが選択されていません。プロンプトを選択してください。")
+        #     st.stop()
         if not user_input.strip():
             st.warning("⚠️ テキストが空です。入力してください。")
             st.stop()
-        # elif not selected_prompt[4].strip():  # ✅ プロンプト空チェック追加
-        #     st.error("❌ 評価プロンプトが設定されていません。管理者にプロンプト設定を依頼してください。")
-        #     st.stop()
+        elif dbPrompts is None:  # ✅ プロンプト空チェック追加
+            st.error("❌ 評価プロンプトが設定されていません。管理者にプロンプト設定を依頼してください。")
+            st.stop()
         elif shodan_date is None:
             st.warning("❌ 商談日付が入力されていません。入力してください。")
             st.stop()
@@ -82,7 +82,7 @@ def evaluationForm(dbPrompts):
             audio_file_path = save_audio_file(audio_file, upload_dir = "uploads")
             if audio_file_path is None:
                 st.error("❌ 音声ファイルの保存に失敗しました。")
-        for i, selected_prompt in enumerate(selected_prompts):
+        for i, selected_prompt in enumerate(dbPrompts):
             shodan_array = {
                 "user_id": user_id,
                 "team_id": team_id,
