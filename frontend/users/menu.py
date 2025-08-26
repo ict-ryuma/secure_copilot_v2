@@ -1,12 +1,36 @@
 import streamlit as st
 
+# def menu():
+    # st.header("📋 管理メニュー")
+    # menu = st.radio("操作を選択", [
+    #     # "🔄 プロンプト再取得",
+    #     "商談を作成",
+    #     "未評価の商談を選択してください",
+    #     "評価の商談を選択してください",
+    #     "🔓 ログアウト",
+    # ])
+    # return menu
+
 def menu():
     st.header("📋 管理メニュー")
-    menu = st.radio("操作を選択", [
-        # "🔄 プロンプト再取得",
+
+    # Define menu options
+    options = [
         "商談を作成",
         "未評価の商談を選択してください",
         "評価の商談を選択してください",
         "🔓 ログアウト",
-    ])
+    ]
+
+    # Initialize default menu selection after login
+    if "menu_selected" not in st.session_state:
+        st.session_state.menu_selected = options[0]  # first item as default
+
+    menu = st.radio(
+        "操作を選択",
+        options,
+        index=options.index(st.session_state.menu_selected),  # restore from session
+        key="menu_selected"
+    )
     return menu
+

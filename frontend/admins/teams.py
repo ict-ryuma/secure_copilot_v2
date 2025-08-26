@@ -58,13 +58,13 @@ def team_manage():
         st.subheader("🆕 チーム追加フォーム")
         with st.form("add_team_form"):
             new_name = st.text_input("チーム名", placeholder="例: sales_team_alpha")
-            new_descriptions = st.text_area("テキストプロンプト", placeholder="営業評価用のプロンプトを入力", height=100)
+            new_descriptions = st.text_area("説明", placeholder="営業評価用のチームを入力", height=100)
             new_is_active = st.checkbox("有効化")
             
             if st.form_submit_button("✅ チームを登録"):
                 if not new_name.strip():
-                    st.error("❌ Please write a team name")
-                    st.stop
+                    st.error("❌ チーム名を入力してください")
+                    st.stop()
                 else:
                     success,message=create_team(team_name=new_name,descriptions=new_descriptions,is_active=new_is_active,created_by=adm_user_id)
                     if success:

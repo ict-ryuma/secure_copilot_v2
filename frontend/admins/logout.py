@@ -1,7 +1,7 @@
 import streamlit as st
 
 def logout(cookie_manager,app_name):
-    st.markdown("---")
+    # st.markdown("---")
     if st.button("🔓 ログアウト"):
         # Delete cookies
         cookie_manager.delete(f"{app_name}-user",key=f"{app_name}-user-set")

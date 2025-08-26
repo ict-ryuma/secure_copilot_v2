@@ -1,4 +1,4 @@
-outcome_array = {0:"🟢 成約", 1:"🔴 失注", 2:"🟡 再商談"}
+outcome_array = {0:"🟢 成約", 1:"🔴 未成約", 2:"🟡 再商談"}
 
 def display_outcome(val):
     """Return the emoji + text for a given outcome value"""

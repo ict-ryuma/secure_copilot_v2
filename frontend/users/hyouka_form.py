@@ -149,77 +149,77 @@ def evaluationForm(dbPrompts):
 #                         import traceback
 #                         st.code(f"スタックトレース:\n{traceback.format_exc()}")
 
-def saveEvaluation():
-    # ✅ Show 成約/失注/再商談 only if the previous form was submitted and GPT responded
-    if "form_submitted" in st.session_state and st.session_state.get("form_submitted")==True:
-        user_id = st.session_state.get("user_id", "")
-        # try:
-        #     alreadyLogged = already_logged(user_id)
-        # except Exception as e:
-        #     st.error(f"❌ Function error: {e}")
-        #     alreadyLogged = False
-        # if alreadyLogged:
-        #     st.info("✅ この評価はすでに保存済みです。")
-        # else:
-        if not st.session_state.get("evaluation_saved"):  # Only show once
-            # with st.form("evaluation_form"):
-            st.markdown("---")
-            st.subheader("💾 結果登録：成約状況")
-            cols = st.columns(3)
+# def saveEvaluation():
+#     # ✅ Show 成約/失注/再商談 only if the previous form was submitted and GPT responded
+#     if "form_submitted" in st.session_state and st.session_state.get("form_submitted")==True:
+#         user_id = st.session_state.get("user_id", "")
+#         # try:
+#         #     alreadyLogged = already_logged(user_id)
+#         # except Exception as e:
+#         #     st.error(f"❌ Function error: {e}")
+#         #     alreadyLogged = False
+#         # if alreadyLogged:
+#         #     st.info("✅ この評価はすでに保存済みです。")
+#         # else:
+#         if not st.session_state.get("evaluation_saved"):  # Only show once
+#             # with st.form("evaluation_form"):
+#             st.markdown("---")
+#             st.subheader("💾 結果登録：成約状況")
+#             cols = st.columns(3)
 
-            if cols[0].button("🟢 成約"):
-                st.session_state["outcome"] = "成約"
-                st.session_state["evaluation_saved"] = True
-                st.experimental_rerun()
+#             if cols[0].button("🟢 成約"):
+#                 st.session_state["outcome"] = "成約"
+#                 st.session_state["evaluation_saved"] = True
+#                 st.experimental_rerun()
 
-            if cols[1].button("🔴 失注"):
-                st.session_state["outcome"] = "失注"
-                st.session_state["evaluation_saved"] = True
-                st.experimental_rerun()
+#             if cols[1].button("🔴 失注"):
+#                 st.session_state["outcome"] = "失注"
+#                 st.session_state["evaluation_saved"] = True
+#                 st.experimental_rerun()
 
-            if cols[2].button("🟡 再商談"):
-                st.session_state["outcome"] = "再商談"
-                st.session_state["evaluation_saved"] = True
-                st.experimental_rerun()
-        if st.session_state.get("evaluation_saved") and "outcome" in st.session_state:
-            # Only save once
-            user_id = st.session_state.get("user_id", "")
-            logger.info(f"user_id: {user_id}")
-            logger.info(f"latest_member_name: {st.session_state['latest_member_name']}")
-            logger.info(f"latest_kintone_id: {st.session_state['latest_kintone_id']}")
-            logger.info(f"latest_phone_no: {st.session_state['latest_phone_no']}")
-            logger.info(f"latest_shodan_date: {st.session_state['latest_shodan_date']}")
-            logger.info(f"outcome: {st.session_state['outcome']}")
-            logger.info(f"latest_reply: {st.session_state['latest_reply']}")
-            logger.info(f"latest_score_items: {st.session_state['latest_score_items']}")
-            logger.info(f"latest_audio_prompt: {st.session_state['latest_audio_prompt']}")
-            logger.info(f"latest_full_prompt: {st.session_state['latest_full_prompt']}")
-            logger.info(f"latest_audio_file: {st.session_state['latest_audio_file']}")
-            logger.info(f"latest_audio_features: {st.session_state['latest_audio_features']}")
-            logger.info(f"latest_audio_feedback: {st.session_state['latest_audio_feedback']}")
-            logger.info(f"latest_parsed: {st.session_state['latest_parsed']}")
-            try:
-                save_evaluation(
-                    user_id,
-                    st.session_state["latest_member_name"],
-                    st.session_state["latest_kintone_id"],
-                    st.session_state["latest_phone_no"],
-                    st.session_state["latest_shodan_date"],
-                    st.session_state["outcome"],
-                    st.session_state["latest_reply"],
-                    st.session_state["latest_score_items"],
-                    st.session_state["latest_audio_prompt"],
-                    st.session_state["latest_full_prompt"],
-                    st.session_state["latest_audio_file"],
-                    st.session_state["latest_audio_features"],
-                    st.session_state["latest_audio_feedback"],
-                    # st.session_state["latest_parsed"],
-                )
-                st.success(f"✅ {st.session_state['outcome']}として保存しました！")
-                st.session_state["form_submitted"] = False
-                logger.info(f"save_evaluation ended successfully for user_id: {user_id}")
-            except Exception as e:
-                logger.error(f"❌ システムエラー: {e}")
+#             if cols[2].button("🟡 再商談"):
+#                 st.session_state["outcome"] = "再商談"
+#                 st.session_state["evaluation_saved"] = True
+#                 st.experimental_rerun()
+#         if st.session_state.get("evaluation_saved") and "outcome" in st.session_state:
+#             # Only save once
+#             user_id = st.session_state.get("user_id", "")
+#             logger.info(f"user_id: {user_id}")
+#             logger.info(f"latest_member_name: {st.session_state['latest_member_name']}")
+#             logger.info(f"latest_kintone_id: {st.session_state['latest_kintone_id']}")
+#             logger.info(f"latest_phone_no: {st.session_state['latest_phone_no']}")
+#             logger.info(f"latest_shodan_date: {st.session_state['latest_shodan_date']}")
+#             logger.info(f"outcome: {st.session_state['outcome']}")
+#             logger.info(f"latest_reply: {st.session_state['latest_reply']}")
+#             logger.info(f"latest_score_items: {st.session_state['latest_score_items']}")
+#             logger.info(f"latest_audio_prompt: {st.session_state['latest_audio_prompt']}")
+#             logger.info(f"latest_full_prompt: {st.session_state['latest_full_prompt']}")
+#             logger.info(f"latest_audio_file: {st.session_state['latest_audio_file']}")
+#             logger.info(f"latest_audio_features: {st.session_state['latest_audio_features']}")
+#             logger.info(f"latest_audio_feedback: {st.session_state['latest_audio_feedback']}")
+#             logger.info(f"latest_parsed: {st.session_state['latest_parsed']}")
+#             try:
+#                 save_evaluation(
+#                     user_id,
+#                     st.session_state["latest_member_name"],
+#                     st.session_state["latest_kintone_id"],
+#                     st.session_state["latest_phone_no"],
+#                     st.session_state["latest_shodan_date"],
+#                     st.session_state["outcome"],
+#                     st.session_state["latest_reply"],
+#                     st.session_state["latest_score_items"],
+#                     st.session_state["latest_audio_prompt"],
+#                     st.session_state["latest_full_prompt"],
+#                     st.session_state["latest_audio_file"],
+#                     st.session_state["latest_audio_features"],
+#                     st.session_state["latest_audio_feedback"],
+#                     # st.session_state["latest_parsed"],
+#                 )
+#                 st.success(f"✅ {st.session_state['outcome']}として保存しました！")
+#                 st.session_state["form_submitted"] = False
+#                 logger.info(f"save_evaluation ended successfully for user_id: {user_id}")
+#             except Exception as e:
+#                 logger.error(f"❌ システムエラー: {e}")
 
 
 

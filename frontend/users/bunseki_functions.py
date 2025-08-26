@@ -103,8 +103,8 @@ def convert_to_wav(uploaded_file):
 
 
 
-def initialize_selectbox():
-    st.session_state.selected_action = "操作を選んでください"
+# def initialize_selectbox():
+#     st.session_state.selected_action = "操作を選んでください"
 
 # def get_prompt():
 #     # st.write("ボタンがクリックされました！")  # デバッグ用

@@ -42,6 +42,8 @@ if st.session_state["authentication_status"] and cookie_user_data:
     # --- サイドバー：ログインUI or ログイン情報 ---
     with st.sidebar:
         menu = menu()
+        st.markdown("---")
+        st.write(menu)
     if menu == "商談を作成":
         hyouka_form()
     # if menu == "🔄 プロンプト再取得":
