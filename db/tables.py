@@ -99,7 +99,7 @@ def create_shodans_table():
             phone_no VARCHAR(14) NOT NULL,
             shodan_date DATE DEFAULT NULL,
             shodan_text TEXT DEFAULT NULL,
-            audio_file VARCHAR(50) DEFAULT NULL,
+            audio_file VARCHAR(150) DEFAULT NULL,
             outcome VARCHAR(50) DEFAULT NULL,
             is_evaluated TINYINT DEFAULT 0,
             is_evaluation_saved TINYINT DEFAULT 0,
@@ -136,6 +136,41 @@ def create_evaluation_logs_table():
         )
     ''')
     print("✅ evaluation_logs テーブル初期化完了")
+# def add_evaluated_by_column_to_evaluation_logs_table():
+#     """評価ログテーブルにevaluated_byカラムを追加"""
+#     execute_query('''
+#         ALTER TABLE evaluation_logs
+#         ADD COLUMN IF NOT EXISTS evaluated_by INT DEFAULT NULL COMMENT 'User ID who evaluated the shodan' AFTER comment;
+
+#     ''')
+#     print("✅ evaluation_logs テーブルにevaluated_byカラムを追加完了")
+
+
+def add_evaluated_by_column_to_evaluation_logs_table():
+    """Add 'evaluated_by' column to evaluation_logs table after 'comment' column"""
+    # 1️⃣ Check if the column already exists
+    query_check = """
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE table_name='evaluation_logs'
+          AND column_name='evaluated_by'
+          AND table_schema=DATABASE();
+    """
+    exists = execute_query(query_check, fetch=True)
+
+    if exists and exists[0][0] == 0:
+        # 2️⃣ Add column after 'comment' with English comment
+        query_add = """
+            ALTER TABLE evaluation_logs
+            ADD COLUMN evaluated_by INT DEFAULT NULL
+            COMMENT 'ID of the user who evaluated the shodan'
+            AFTER comment;
+        """
+        execute_query(query_add)
+        print("✅ 'evaluated_by' column added to evaluation_logs table after 'comment'")
+    else:
+        print("ℹ 'evaluated_by' column already exists")
+
 
 
 # ✅ 商談評価ログ管理機能（拡張版）

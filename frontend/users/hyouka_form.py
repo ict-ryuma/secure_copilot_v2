@@ -93,7 +93,8 @@ def evaluationForm(dbPrompts):
                 "shodan_date": str(shodan_date) if shodan_date else None,
                 "shodan_text": user_input,
                 "audio_file": audio_file_path,  # use saved filename, not st.file_uploader object
-                "outcome": outcome
+                "outcome": outcome,
+                "created_by": user_id
             }
             success,message=save_shodan(shodan_array)
             if not success:

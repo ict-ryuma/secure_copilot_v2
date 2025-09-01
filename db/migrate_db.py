@@ -3,6 +3,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent))
 import traceback
 from tables import (
+    add_evaluated_by_column_to_evaluation_logs_table,
     create_users_table,
     create_teams_table,
     create_prompts_table,
@@ -92,6 +93,16 @@ def init_complete_system():
         print("✅ 商談評価ログDB初期化完了")
     except Exception as e:
         print("❌ 商談評価ログDB初期化エラー:")
+        traceback.print_exc()
+        return False
+    print("=" * 50)
+    # 8. 商談評価ログDBにevaluated_byカラムを追加
+    try:
+        print("\n🔧 商談評価ログDBにevaluated_byカラムを追加中...")
+        add_evaluated_by_column_to_evaluation_logs_table()
+        print("✅ 商談評価ログDBにevaluated_byカラムを追加完了")
+    except Exception as e:
+        print("❌ 商談評価ログDBにevaluated_byカラムを追加エラー:")
         traceback.print_exc()
         return False
 

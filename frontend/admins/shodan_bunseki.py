@@ -6,6 +6,8 @@ import json
 
 from .adminFunctions import get_status_badge
 from users.hyouka_view_process import replyProcess
+from outcomes import outcome_array,display_outcome
+from users.bunseki_functions import mi_hyouka_list,evaluation_action
 
 def shodan_bunseki():
     st.subheader("📊 商談記録・分析ダッシュボード")
@@ -31,11 +33,23 @@ def shodan_bunseki():
                 format_func=lambda x: x[1],  # show username
             )
             selected_user_id = selected_user[0]
-            
             status = st.selectbox(
                 "🚦 商談状態",
-                options=["全て", "成約", "失注", "再商談", "未設定"],
-                help="AIが分類した商談結果で絞り込み"
+                options=[-1] + list(outcome_array.keys()),
+                help="AIが分類した商談結果で絞り込み",
+                format_func=lambda val: "全て" if val == -1 else display_outcome(val),
+            )
+            evaluation_options = {
+                1: "✅ 評価済み",
+                0: "❌ 未評価",
+            }
+
+            evaluation_status = st.selectbox(
+                "📝 評価状態",
+                options=list(evaluation_options.keys()),
+                index=0,  # デフォルトを「評価済み」に
+                help="商談の評価状態で絞り込み",
+                format_func=lambda val: evaluation_options[val],
             )
         
         with col2:
@@ -49,7 +63,8 @@ def shodan_bunseki():
             kintone_id = st.text_input(
                 "Kintone ID検索",
                 placeholder="Kintone IDの一部を入力",
-                help="Kintone IDで部分検索"
+                help="Kintone IDで部分検索",
+                value=None
             )
         
         with col3:
@@ -62,7 +77,8 @@ def shodan_bunseki():
             phone_no = st.text_input(
                 "📞 電話番号検索",
                 placeholder="電話番号で検索",
-                help="AIが付与した電話番号で検索"
+                help="AIが付与した電話番号で検索",
+                value=None
             )
         
         # ✅ スコア範囲フィルター
@@ -77,129 +93,134 @@ def shodan_bunseki():
 
     try:
         # ✅ データ取得（フィルター強化版）
-        status_filter = None if status == "全て" else status
-        # st.success(f"✅ filter_username: {selected_user_id}. status_filter: {status_filter}, start_date: {shodan_date_start}, end_date: {shodan_date_end}, kintone_id: {kintone_id}, phone_no: {phone_no}, score_range: {score_range}")
+        status_filter = None if status == -1 else status
+        st.success(f"✅ filter_user_id: {selected_user_id}. status_filter: {status_filter}, start_date: {shodan_date_start}, end_date: {shodan_date_end}, kintone_id: {kintone_id}, phone_no: {phone_no}, Evaluation Status: {evaluation_status}")
         logs = get_evaluations_admin(
-            selected_user_id,
-            shodan_date_start,
-            shodan_date_end,
-            kintone_id,
-            phone_no,
-            # score_range,
-            status_filter
+            member_id=selected_user_id,
+            shodan_date_start=shodan_date_start,
+            shodan_date_end=shodan_date_end,
+            kintone_id=kintone_id,
+            phone_no=phone_no,
+            outcome=status_filter,
+            evaluation_status=evaluation_status,
+            # score_range=score_range,
         )
+        # st.write(logs)
         if logs:
             st.success(f"✅ {len(logs)}件の商談記録が見つかりました")
+            # st.info("💡 表示されているのは「評価済み」の商談記録です。未評価の記録を表示するには、フィルター設定で「未評価」を選択してください。")
             status_counts = {}
             for log in logs:
-                status = log[6] if len(log) > 6 else "未設定"
-                status_counts[status] = status_counts.get(status, 0) + 1
+                try:
+                    outcome = int(log.get("outcome"))
+                except (ValueError, TypeError):
+                    outcome = None
+                if outcome is not None:
+                    status_counts[outcome] = status_counts.get(outcome, 0) + 1
+
+            # --- KPIエリア ---
             col1, col2, col3 = st.columns(3)
+
             with col1:
                 st.metric("📝 商談数", f"{len(logs)}件")
+
             with col2:
-                success_count = status_counts.get("成約", 0)
-                total_completed = success_count + status_counts.get("失注", 0)
+                success_count = status_counts.get(0, 0)  # 成約
+                total_completed = success_count + status_counts.get(1, 0)  # 成約 + 未成約
                 success_rate = (success_count / total_completed * 100) if total_completed > 0 else 0
                 st.metric("📈 成約率", f"{success_rate:.1f}%")
+
             with col3:
-                followup_count = status_counts.get("再商談", 0)
+                followup_count = status_counts.get(2, 0)  # 再商談
                 st.metric("🟡 再商談", f"{followup_count}件")
 
+            # --- 商談状態の分布 ---
             if status_counts:
                 st.markdown("### 🚦 商談状態の分布（AI分類）")
-                status_cols = st.columns(len(status_counts))
-                for i, (status, count) in enumerate(status_counts.items()):
+
+                # outcome_array のキー順で並び替え → 動的対応
+                ordered = [(k, status_counts.get(k, 0)) for k in outcome_array.keys()]
+
+                status_cols = st.columns(len(ordered))
+                for i, (val, count) in enumerate(ordered):
                     with status_cols[i]:
-                        badge = get_status_badge(status)
+                        badge = display_outcome(val)
                         st.metric(badge, f"{count}件")
             st.markdown("---")
-            
-            # ✅ 商談ログ一覧表示（閲覧専用）
             st.subheader("📋 商談記録一覧（閲覧専用）")
             st.caption("📝 データは商談AIシステムから自動取得されています")
             # ✅ 表示件数制限とページング
             display_limit = st.selectbox("表示件数", [10, 20, 50, 100], index=1)
-            
+            # if evaluation_status == 1:
+            # ✅ 商談ログ一覧表示（閲覧専用）
             for i, log in enumerate(logs[:display_limit]):
-                log_id = log[0]
-                log_date = log[15]
+                log_id = log['id']
+                log_date = log['created_at']
                 # log_time = log[2] if log[2] else "未設定"
-                customer_name = log[2] or "（顧客名未記入）"
-                # conversation_text = log[10]
-                # gpt_feedback = log[13]
+                member_name = log['username'] or "（顧客名未記入）"
                 # score = log[8]
-                # username = log[2]
-                created_at = log[15]
-                status = log[6] if len(log) > 6 else "未設定"
+                created_at = log['created_at']
+                # status = log[6] if len(log) > 6 else "未設定"
                 # followup_date = log[5] if len(log) > 5 else None
-                # tags = log[11] if len(log) > 11 else ""
-                
-                status_badge = get_status_badge(status)
-                # dt = datetime.strptime(log_date, "%Y-%m-%d %H:%M:%S")
+                status_badge = display_outcome(log['outcome'])
                 formatted = log_date.strftime("%Y年%02m月%02d日 %H時%M分%S秒")
-                title = f"{i+1} 📅 {formatted} | {customer_name} | {status_badge}"
+                title = f"{i+1} 📅 {formatted} | {member_name} | {status_badge}"
                 # | 📊 {score or 'N/A'}点"
-                
-                with st.expander(title):
-                    st.caption(f"商談日付: {log[5]} | Kintone ID: {log[3]} | 電話番号: {log[4]}")
-                    replyProcess(json.loads(log[7]),json.loads(log[8]), log[2],kintone_id,phone_no, log[5], log[9],log[10],log[11],json.loads(log[12]),json.loads(log[13]))
-                    # ✅ 基本情報（2列レイアウト）
-                    # info_col1, info_col2 = st.columns(2)
-                    # with info_col1:
-                    #     st.markdown("**📋 商談情報**")
-                    #     st.write(f"📅 実施日時: {log_date}")
-                    #     st.write(f"👤 お客様: {customer_name}")
-                    #     st.write(f"📊 AIスコア: {score}点" if score else "📊 AIスコア: 未評価")
-                    #     st.write(f"🚦 AI分類: {status_badge}")
-                    
-                    # with info_col2:
-                    #     st.markdown("**🔍 記録情報**")
-                    #     st.write(f"📝 担当者: {username}")
-                    #     st.write(f"📅 登録日時: {created_at}")
-                    #     if followup_date:
-                    #         st.write(f"📅 フォロー予定: {followup_date}")
-                    #     # if tags:
-                    #     #     st.write(f"🏷️ AIタグ: {tags}")
-                    
-                    # # ✅ 会話内容表示
-                    # if conversation_text:
-                    #     st.markdown("### 💬 会話内容・商談要約")
-                    #     st.text_area(
-                    #         "会話内容", 
-                    #         conversation_text, 
-                    #         height=150, 
-                    #         disabled=True, 
-                    #         key=f"conv_{log_id}",
-                    #         help="商談AIシステムで記録された内容"
-                    #     )
-                    
-                    # # ✅ AI評価・フィードバック表示
-                    # if gpt_feedback:
-                    #     st.markdown("### 🤖 AI評価・フィードバック")
-                    #     st.text_area(
-                    #         "AI評価", 
-                    #         gpt_feedback, 
-                    #         height=150, 
-                    #         disabled=True, 
-                    #         key=f"gpt_{log_id}",
-                    #         help="AIが自動生成した評価とアドバイス"
-                    #     )
-                    
-                # ✅ 記録メタデータ（管理者のみ）
-                if st.session_state.get("is_admin", False):
-                    with st.expander("🔧 記録詳細（管理者のみ）"):
-                        st.code(f"""
-                            記録ID: {log_id}
-                            データソース: 商談AIシステム
-                            登録タイムスタンプ: {created_at}
-                            フィールド数: {len(logs)}
-                        """)
+                if evaluation_status == 1:
+                    with st.expander(title):
+                        st.caption(f"商談日付: {log['shodan_date']} | Kintone ID: {log['kintone_id']} | 電話番号: {log['phone_no']}")
+                        full_prompt = f"{log['text_prompt']}\n\n{log['shodan_text']}"
+                        replyArr = {
+                            "reply": json.loads(log['reply']),
+                            "member_name": member_name,
+                            "score_items": log['score_items'],
+                            "audio_prompt": log['audio_prompt'],
+                            "full_prompt": full_prompt,
+                            "audio_file": None,
+                            "audio_features": json.loads(log['audio_features']),
+                            "audio_feedback": json.loads(log['audio_feedback']),
+                        }
+
+                        success, audio_features, audio_feedback = replyProcess(**replyArr)
+                        # ✅ 基本情報（2列レイアウト）
+                        info_col1, info_col2 = st.columns(2)
+                        with info_col1:
+                            st.markdown("**📋 商談情報**")
+                            st.write(f"📅 実施日時: {log_date}")
+                            st.write(f"👤 お客様: {member_name}")
+                            # st.write(f"📊 AIスコア: {score}点" if score else "📊 AIスコア: 未評価")
+                            st.write(f"🚦 AI分類: {status_badge}")
+                        
+                        with info_col2:
+                            st.markdown("**🔍 記録情報**")
+                            st.write(f"📝 担当者: {member_name}")
+                            st.write(f"📅 登録日時: {created_at}")
+                            # if followup_date:
+                            #     st.write(f"📅 フォロー予定: {followup_date}")
+                            # if tags:
+                            #     st.write(f"🏷️ AIタグ: {tags}")
+                        
+                    # ✅ 記録メタデータ（管理者のみ）
+                    if st.session_state.get("is_admin", False):
+                        with st.expander("🔧 記録詳細（管理者のみ）"):
+                            st.code(f"""
+                                記録ID: {log_id}
+                                データソース: 商談AIシステム
+                                登録タイムスタンプ: {created_at}
+                                フィールド数: {len(logs)}
+                            """)
+                else:
+                    mi_hyouka_list(title)
+                    # evaluation_action
             
             # ✅ ページング情報
             if len(logs) > display_limit:
                 st.info(f"📄 {display_limit}件を表示中（全{len(logs)}件）")
                 st.write("💡 表示件数を変更するか、フィルター条件を調整してください")
+        # else:
+        #     st.info("Not evaluated")
+            if evaluation_status == 0:
+                evaluation_action(logs)
         else:
             st.info("📭 指定した条件の商談記録は見つかりませんでした")
             st.markdown("""

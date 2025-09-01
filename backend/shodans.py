@@ -1,4 +1,4 @@
-from .mysql_connector import execute_query,execute_modify_query
+from .mysql_connector import execute_query,execute_modify_query,execute_query_with_dict_cursor
 from logger_config import logger
 import datetime
 
@@ -15,6 +15,7 @@ def save_shodan(shodan_array):
     audio_file=shodan_array['audio_file']
     outcome=shodan_array['outcome']
     prompt_key=shodan_array['prompt_key']
+    created_by=shodan_array['created_by']
     rows = execute_query('''
         SELECT id FROM shodans WHERE user_id = %s AND team_id = %s AND prompt_id= %s AND kintone_id = %s AND phone_no = %s AND shodan_date = %s AND shodan_text = %s AND outcome = %s
     ''', (user_id, team_id, prompt_id, kintone_id, phone_no, shodan_date, shodan_text, outcome), fetch=True)
@@ -23,9 +24,9 @@ def save_shodan(shodan_array):
     
     try:
         execute_query('''
-            INSERT INTO shodans (user_id, team_id,prompt_id, kintone_id, phone_no, shodan_date, shodan_text,audio_file, outcome)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (user_id, team_id, prompt_id, kintone_id, phone_no, shodan_date, shodan_text, audio_file, outcome))
+            INSERT INTO shodans (user_id, team_id,prompt_id, kintone_id, phone_no, shodan_date, shodan_text,audio_file, outcome, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (user_id, team_id, prompt_id, kintone_id, phone_no, shodan_date, shodan_text, audio_file, outcome, created_by))
         return True, f"✅ 商談が保存されました！prompt_key: {prompt_key}"
     except Exception as e:
         logger.error(f"prompt_key: {prompt_key}. ❌ エラー: {str(e)}")
@@ -75,7 +76,7 @@ def get_shodan_by_user(user_id, is_evaluated=None, is_evaluation_saved=None):
 
         logger.info(query)
         logger.info(params)
-        rows = execute_query(query, tuple(params), fetch=True)
+        rows = execute_query_with_dict_cursor(query, tuple(params), fetch=True)
         return rows
 
     except Exception as e:

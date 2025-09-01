@@ -172,3 +172,52 @@ def execute_modify_query(query, params=None):
                 conn.close()
             except:
                 pass
+
+
+def execute_query_with_dict_cursor(query, params=None, fetch=False):
+    """Executes a given SQL query with optional parameters and fetch option."""
+    conn = None
+    cursor = None
+    result = None
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True, buffered=True)  # ✅ dictionary cursor
+
+        cursor.execute(query, params or ())
+        
+        if fetch:
+            result = cursor.fetchall()  # will return list of dicts
+        else:
+            conn.commit()
+        
+        # Clean up remaining result sets if any
+        try:
+            while cursor.nextset():
+                if fetch:
+                    cursor.fetchall()
+        except:
+            pass
+            
+    except Exception as e:
+        print(f"[ERROR] execute_query: {e}")
+        if conn:
+            try:
+                conn.rollback()
+            except:
+                pass
+        raise e
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+    return result
+

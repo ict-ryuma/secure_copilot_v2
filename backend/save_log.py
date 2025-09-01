@@ -3,19 +3,19 @@ import json
 import os
 from datetime import datetime, date, timedelta
 from pathlib import Path
-from .mysql_connector import execute_query
+from .mysql_connector import execute_query,execute_query_with_dict_cursor
 from mysql.connector import Error
 from logger_config import logger
 
 # ✅ 修正: 絶対パスに統一
 
-def save_evaluation(shodan_id,reply, full_prompt, audio_features,audio_feedback,evaluation_outcome=None,comment=None):
+def save_evaluation(shodan_id,reply, full_prompt, audio_features,audio_feedback,evaluated_by=None,evaluation_outcome=None,comment=None):
     """評価結果をDBに保存"""
     try:
         execute_query('''
-            INSERT INTO evaluation_logs (shodan_id, reply, full_prompt, audio_features, audio_feedback, evaluation_outcome, comment)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ''', (shodan_id, json.dumps(reply, ensure_ascii=False), full_prompt, json.dumps(audio_features, ensure_ascii=False), json.dumps(audio_feedback, ensure_ascii=False), evaluation_outcome, comment))
+            INSERT INTO evaluation_logs (shodan_id, reply, full_prompt, audio_features, audio_feedback, evaluated_by, evaluation_outcome, comment)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (shodan_id, json.dumps(reply, ensure_ascii=False), full_prompt, json.dumps(audio_features, ensure_ascii=False), json.dumps(audio_feedback, ensure_ascii=False), evaluated_by, evaluation_outcome, comment))
         return True, "✅ 評価ログが保存されました！"
     except Exception as e:
         logger.info(f"❌ 評価ログの保存に失敗しました。 エラー: {str(e)}")
@@ -76,48 +76,204 @@ def get_all_evaluations(member_id=None, shodan_date=None):
     else:
         rows = execute_query('SELECT * FROM evaluation_logs ORDER BY created_at DESC', fetch=True)
     return rows
-def get_evaluations_admin(member_id=None, shodan_date_start=None, shodan_date_end=None, kintone_id=None, phone_no=None, outcome=None, score_range=None,):
-    """全評価ログを条件に応じて取得"""
-    query = 'SELECT * FROM evaluation_logs WHERE 1=1'
+# def get_evaluations_admin(member_id=None, shodan_date_start=None, shodan_date_end=None, kintone_id=None, phone_no=None, outcome=None, evaluation_status=None, score_range=None):
+#     """全評価ログを条件に応じて取得"""
+#     query = 'SELECT * FROM evaluation_logs WHERE 1=1'
+#     params = []
+
+#     if member_id:
+#         query += ' AND member_id = %s'
+#         params.append(member_id)
+
+#     if shodan_date_start and shodan_date_end:
+#         query += ' AND shodan_date BETWEEN %s AND %s'
+#         params.extend([shodan_date_start, shodan_date_end])
+#     elif shodan_date_start:
+#         query += ' AND shodan_date >= %s'
+#         params.append(shodan_date_start)
+#     elif shodan_date_end:
+#         query += ' AND shodan_date <= %s'
+#         params.append(shodan_date_end)
+
+#     if kintone_id:
+#         query += ' AND kintone_id = %s'
+#         params.append(kintone_id)
+
+#     if phone_no:
+#         query += ' AND phone_no = %s'
+#         params.append(phone_no)
+
+#     if outcome:
+#         query += ' AND outcome = %s'
+#         params.append(outcome)
+
+#     # if score_range and isinstance(score_range, tuple) and len(score_range) == 2:
+#     #     query += ' AND avg_score BETWEEN %s AND %s'
+#     #     params.extend(score_range)
+
+#     query += ' ORDER BY created_at DESC'
+
+#     # with open("/app/eval_debug.log", "a") as log:
+#     #     log.write(f"🚨 get_evaluations_admin() called\n")
+#     #     log.write(f"query: {query} params: {params}\n")
+#     rows = execute_query(query, tuple(params), fetch=True)
+#     return rows
+
+# def get_evaluations_admin(
+#     member_id=None,
+#     shodan_date_start=None,
+#     shodan_date_end=None,
+#     kintone_id=None,
+#     phone_no=None,
+#     outcome=None,
+#     evaluation_status=None,  # is_evaluated に対応
+#     score_range=None,
+# ):
+#     """全評価ログを条件に応じて取得"""
+#     query = '''
+#         SELECT el.*, s.user_id, s.team_id, s.kintone_id, s.phone_no, 
+#                s.shodan_date, s.outcome, s.is_evaluated, s.is_evaluation_saved
+#         FROM evaluation_logs el
+#         INNER JOIN shodans s ON el.shodan_id = s.id
+#         WHERE 1=1
+#     '''
+#     params = []
+
+#     if member_id:
+#         query += ' AND s.user_id = %s'
+#         params.append(member_id)
+
+#     if shodan_date_start and shodan_date_end:
+#         query += ' AND s.shodan_date BETWEEN %s AND %s'
+#         params.extend([shodan_date_start, shodan_date_end])
+#     elif shodan_date_start:
+#         query += ' AND s.shodan_date >= %s'
+#         params.append(shodan_date_start)
+#     elif shodan_date_end:
+#         query += ' AND s.shodan_date <= %s'
+#         params.append(shodan_date_end)
+
+#     if kintone_id:
+#         query += ' AND s.kintone_id = %s'
+#         params.append(kintone_id)
+
+#     if phone_no:
+#         query += ' AND s.phone_no = %s'
+#         params.append(phone_no)
+
+#     if outcome is not None:
+#         query += ' AND s.outcome = %s'
+#         params.append(outcome)
+
+#     if evaluation_status is not None:
+#         query += ' AND s.is_evaluated = %s'
+#         params.append(evaluation_status)
+
+#     # 将来的に avg_score を shodans に追加した場合
+#     # if score_range and isinstance(score_range, tuple) and len(score_range) == 2:
+#     #     query += ' AND s.avg_score BETWEEN %s AND %s'
+#     #     params.extend(score_range)
+
+#     query += ' ORDER BY el.created_at DESC'
+
+#     rows = execute_query(query, tuple(params), fetch=True)
+#     return rows
+def get_evaluations_admin(
+    member_id=None,
+    shodan_date_start=None,
+    shodan_date_end=None,
+    kintone_id=None,
+    phone_no=None,
+    outcome=None,
+    evaluation_status=1,
+    score_range=None
+):
+    """全評価ログ or shodans データを条件に応じて取得"""
+
     params = []
 
-    if member_id:
-        query += ' AND member_id = %s'
-        params.append(member_id)
+    # ---------------------------
+    # case 1: evaluation_status=0 → shodans
+    # ---------------------------
+    if evaluation_status == 0:
+        query = "SELECT s.*,u.name,u.username,p.prompt_key,p.text_prompt,p.audio_prompt,p.score_items,p.notes FROM shodans s " \
+        "INNER JOIN users u ON s.user_id = u.id " \
+        "INNER JOIN prompts p ON s.prompt_id = p.id " \
+        "WHERE 1=1"
 
-    if shodan_date_start and shodan_date_end:
-        query += ' AND shodan_date BETWEEN %s AND %s'
-        params.extend([shodan_date_start, shodan_date_end])
-    elif shodan_date_start:
-        query += ' AND shodan_date >= %s'
-        params.append(shodan_date_start)
-    elif shodan_date_end:
-        query += ' AND shodan_date <= %s'
-        params.append(shodan_date_end)
+        if member_id is not None:
+            query += " AND s.user_id = %s"
+            params.append(member_id)
 
-    if kintone_id:
-        query += ' AND kintone_id = %s'
-        params.append(kintone_id)
+        if shodan_date_start is not None and shodan_date_end is not None:
+            query += " AND s.shodan_date BETWEEN %s AND %s"
+            params.extend([shodan_date_start, shodan_date_end])
+        elif shodan_date_start is not None:
+            query += " AND s.shodan_date >= %s"
+            params.append(shodan_date_start)
+        elif shodan_date_end is not None:
+            query += " AND s.shodan_date <= %s"
+            params.append(shodan_date_end)
 
-    if phone_no:
-        query += ' AND phone_no = %s'
-        params.append(phone_no)
+        if kintone_id or kintone_id is not None:
+            query += " AND s.kintone_id = %s"
+            params.append(kintone_id)
 
-    if outcome:
-        query += ' AND outcome = %s'
-        params.append(outcome)
+        if phone_no or phone_no is not None:
+            query += " AND s.phone_no = %s"
+            params.append(phone_no)
 
-    # if score_range and isinstance(score_range, tuple) and len(score_range) == 2:
-    #     query += ' AND avg_score BETWEEN %s AND %s'
-    #     params.extend(score_range)
+        if outcome is not None:
+            query += " AND s.outcome = %s"
+            params.append(outcome)
 
-    query += ' ORDER BY created_at DESC'
+        query += " AND is_evaluated = 0 and is_evaluation_saved=0 ORDER BY s.created_at DESC"
 
-    with open("/app/eval_debug.log", "a") as log:
-        log.write(f"🚨 get_evaluations_admin() called\n")
-        log.write(f"query: {query} params: {params}\n")
-    rows = execute_query(query, tuple(params), fetch=True)
+    # ---------------------------
+    # case 2: evaluation_status=1 → evaluation_logs
+    # ---------------------------
+    else:
+        query = """
+            SELECT el.*, s.shodan_date, s.kintone_id, s.phone_no,s.shodan_text, s.outcome, s.user_id,u.name,u.username,p.prompt_key,p.text_prompt,p.audio_prompt,p.score_items,p.notes
+            FROM evaluation_logs el
+            JOIN shodans s ON el.shodan_id = s.id
+            JOIN users u ON s.user_id = u.id
+            JOIN prompts p ON s.prompt_id = p.id
+            WHERE 1=1
+        """
+
+        if member_id is not None:
+            query += " AND s.user_id = %s"
+            params.append(member_id)
+
+        if shodan_date_start is not None and shodan_date_end is not None:
+            query += " AND s.shodan_date BETWEEN %s AND %s"
+            params.extend([shodan_date_start, shodan_date_end])
+        elif shodan_date_start is not None:
+            query += " AND s.shodan_date >= %s"
+            params.append(shodan_date_start)
+        elif shodan_date_end is not None:
+            query += " AND s.shodan_date <= %s"
+            params.append(shodan_date_end)
+
+        if kintone_id or kintone_id is not None:
+            query += " AND s.kintone_id = %s"
+            params.append(kintone_id)
+
+        if phone_no or phone_no is not None:
+            query += " AND s.phone_no = %s"
+            params.append(phone_no)
+
+        if outcome is not None:
+            query += " AND s.outcome = %s"
+            params.append(outcome)
+
+        query += " ORDER BY el.created_at DESC"
+
+    rows = execute_query_with_dict_cursor(query, tuple(params), fetch=True)
     return rows
+
+
 def getEvaluationById(id=None):
     """評価ログをIDで取得"""
     if id:

@@ -1,6 +1,4 @@
 import os
-# from time import time
-# from secure_copilot_v2.frontend.users.bunseki_functions import BASE_API_URL
 import streamlit as st
 import json
 from users.hyouka_view_process import replyProcess
@@ -12,127 +10,10 @@ from logger_config import logger
 from backend.save_log import save_evaluation
 import math
 import time
+from users.bunseki_functions import mi_hyouka_list,evaluation_action
 
 BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8000")
 GPT_API_URL = f"{BASE_API_URL}/secure-gpt-chat"
-
-
-
-
-# def mi_hyouka_list_view():
-#     """List non-evaluated shodans and run/save GPT evaluation safely."""
-
-#     st.header("📋 商談一覧")
-#     user_id = st.session_state.get("user_id", "")
-#     shodans = get_shodan_by_user(user_id=user_id, is_evaluated=None, is_evaluation_saved=0)
-
-#     if not (isinstance(shodans, list) and len(shodans) > 0):
-#         st.info("No shodans found for this user.")
-#         return
-
-#     # Build tabs (use shodan_id for stable keys)
-#     tab_labels = [f"{row[6]} | {display_outcome(row[9])} | {row[17]}" for row in shodans]
-#     tabs = st.tabs(tab_labels)
-
-#     for idx, tab in enumerate(tabs):
-#         with tab:
-#             row = shodans[idx]
-#             sid = row[0]  # shodan_id
-
-#             st.header(f"商談詳細: {row[6]} | {display_outcome(row[9])} | {row[17]}")
-#             st.text_area("text_prompt", row[18], height=100, disabled=True, key=f"text_prompt_{sid}")
-#             st.text_area("audio_prompt", row[19], height=50, disabled=True, key=f"audio_prompt_{sid}")
-#             st.text_area("score_items", row[20], height=50, disabled=True, key=f"score_items_{sid}")
-#             st.text_area("商談内容", row[7], height=50, disabled=True, key=f"shodan_text_{sid}")
-#             st.text_input("Audio File", row[8], disabled=True, key=f"audio_file_{sid}")
-
-#             # Session keys per shodan
-#             # eval_key = f"eval_data_{sid}"       # holds GPT result dict
-#             # save_key = f"save_result_{sid}"     # holds (success, message)
-#             # saved_key = f"saved_{sid}"          # holds True after save
-
-#             # --- Evaluate button ---
-#             if st.button("🎯 評価・改善提案を受け取る", key=f"btn_eval_{sid}"):
-#                 with st.spinner("🧠 GPTによる評価中..."):
-#                     try:
-#                         full_prompt = f"{row[18]}\n\n{row[7]}"
-#                         res = requests.post(GPT_API_URL, json={"user_message": full_prompt}, timeout=60)
-#                         res.raise_for_status()
-#                         reply = res.json().get("reply", "").strip()
-#                         member_name = st.session_state.get("username", "")
-
-#                         replyArr = {
-#                             "reply": reply,
-#                             "member_name": member_name,
-#                             "score_items": row[20],
-#                             "audio_prompt": row[19],
-#                             "full_prompt": full_prompt,
-#                             "audio_file": row[8],
-#                             "audio_features": None,
-#                             "audio_feedback": None
-#                         }
-#                         success, audio_features, audio_feedback = replyProcess(**replyArr)
-#                         if success:
-#                             update_shodan_status(sid, is_evaluated=1, is_evaluation_saved=None)
-#                             if st.button("💾 保存", key=f"btn_save_{sid}"):
-#                                 save_payload = {
-#                                     "shodan_id": sid,
-#                                     "reply": reply,
-#                                     "full_prompt": full_prompt,
-#                                     "audio_features": audio_features,
-#                                     "audio_feedback": audio_feedback
-#                                 }
-#                                 ok, msg = save_evaluation(**save_payload)
-#                                 if ok:
-#                                     update_shodan_status(sid, is_evaluated=None, is_evaluation_saved=1)
-#                                 st.success(msg) if ok else st.error(msg)
-
-#                         else:
-#                             st.error("Evaluation failed.")
-#                     except Exception as e:
-#                         st.error(f"❌ Error: {e}")
-
- # --- Show persistent save message ---
-# if "save_message" in st.session_state and st.session_state.save_message:
-#     if st.session_state.save_status == "success":
-#         st.success(st.session_state.save_message)
-#     else:
-#         st.error(st.session_state.save_message)
-    # Clear after showing once
-    # st.session_state.save_message = None
-    # st.session_state.save_status = None
-
-            # --- Show GPT result ---
-            # eval_data = st.session_state.get(eval_key)
-            # if eval_data:
-            #     st.text_area("GPT評価結果", eval_data["reply"], height=180, disabled=True, key=f"reply_{sid}")
-
-            #     # Show save button only if not saved yet
-            #     if not st.session_state.get(saved_key, False):
-            #         if st.button("💾 保存", key=f"btn_save_{sid}"):
-            #             save_payload = {
-            #                 "shodan_id": eval_data["shodan_id"],
-            #                 "reply": eval_data["reply"],
-            #                 "full_prompt": eval_data["full_prompt"],
-            #                 "audio_features": eval_data["audio_features"],
-            #                 "audio_feedback": eval_data["audio_feedback"]
-            #             }
-            #             ok, msg = save_evaluation(**save_payload)
-            #             st.session_state[save_key] = (ok, msg)
-            #             if ok:
-            #                 update_shodan_status(sid, is_evaluated=None, is_evaluation_saved=1)
-            #                 st.session_state[saved_key] = True  # ✅ mark as saved
-
-            # # --- Show save result message ---
-            # if st.session_state.get(save_key):
-            #     ok, msg = st.session_state[save_key]
-            #     st.success(msg) if ok else st.error(msg)
-# import streamlit as st
-# import requests
-# import time
-
-# import streamlit as st
-# import requests
 
 
 def mi_hyouka_list_view():
@@ -143,92 +24,12 @@ def mi_hyouka_list_view():
     if not (shodans and isinstance(shodans, list)):
         st.info("このユーザーの商談は見つかりませんでした。")
         return
+    # st.write(shodans)
     for row in shodans:
-        shodan_label = f"{row[6]} | {display_outcome(row[9])} | {row[17]}"
-        with st.container():
-            st.markdown(
-                f"""
-                <div style="
-                    padding: 12px; 
-                    margin: 8px 0; 
-                    border-radius: 12px; 
-                    background-color: #f9f9f9; 
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                ">
-                    <h4 style="margin:0;">✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span></h4>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+        shodan_label = f"{row['shodan_date']} | {display_outcome(row['outcome'])} | {row['prompt_key']}"
+        mi_hyouka_list(shodan_label)
+    evaluation_action(shodans)
 
-    if st.button("🎯 評価・改善提案を受け取る", key="all_evaluation_btn"):
-        progress = st.progress(0, text="🧠 GPT評価中...")
-        try:
-            for idx, row in enumerate(shodans, start=1):
-                sid = row[0]
-                exp_label = f"{row[6]} | {display_outcome(row[9])} | {row[17]}"
-
-                with st.expander(exp_label, expanded=False):
-                    # st.text_area("text_prompt", row[18], height=100, disabled=True, key=f"text_prompt_{sid}")
-                    # st.text_area("audio_prompt", row[19], height=50, disabled=True, key=f"audio_prompt_{sid}")
-                    # st.text_area("score_items", row[20], height=50, disabled=True, key=f"score_items_{sid}")
-                    st.text_area("商談テキスト", row[7], height=50, disabled=True, key=f"shodan_text_{sid}")
-
-                    with st.spinner("🧠 GPTに問い合わせ中..."):
-                        try:
-                            full_prompt = f"{row[18]}\n\n{row[7]}"
-                            start_time = time.time()  # ✅ correct usage
-
-                            res = requests.post(GPT_API_URL, json={"user_message": full_prompt}, timeout=90)
-                            res.raise_for_status()
-
-                            reply = res.json().get("reply", "").strip()
-                            full_prompt = f"{row[18]}\n\n{row[7]}"
-                            member_name = st.session_state.get("username", "")
-
-                            replyArr = {
-                                "reply": reply,
-                                "member_name": member_name,
-                                "score_items": row[20],
-                                "audio_prompt": row[19],
-                                "full_prompt": full_prompt,
-                                "audio_file": row[8],
-                                "audio_features": None,
-                                "audio_feedback": None
-                            }
-
-                            success, audio_features, audio_feedback = replyProcess(**replyArr)
-                            if success:
-                                update_shodan_status(sid, is_evaluated=1, is_evaluation_saved=None)
-                                save_payload = {
-                                    "shodan_id": sid,
-                                    "reply": reply,
-                                    "full_prompt": full_prompt,
-                                    "audio_features": audio_features,
-                                    "audio_feedback": audio_feedback,
-                                }
-                                ok, msg = save_evaluation(**save_payload)
-                                if ok:
-                                    update_shodan_status(sid, is_evaluated=None, is_evaluation_saved=1)
-                                    st.success(f"{msg}")
-                                else:
-                                    st.error(f"{msg}")
-                            else:
-                                st.error("評価に失敗しました。")
-                        except Exception as e:
-                            st.error(f"❌ Error: {e}")
-                        elapsed = int(time.time() - start_time)  # ✅ correct usage
-
-                        st.success(f"✅ GPTの処理が完了しました（所要時間: {elapsed} 秒）")
-                        # st.write(reply)
-
-                # Update progress bar
-                progress.progress(int(idx / len(shodans) * 100), text=f"{idx}/{len(shodans)} 完了")
-
-            progress.progress(100, text="🎉 すべての評価が完了しました！")
-
-        except Exception as e:
-            st.error(f"❌ Error: {e}")
 
 def hyouka_list_view():
     """評価済みの商談一覧表示（ページネーション付き、件数選択可能）"""
@@ -285,21 +86,21 @@ def hyouka_list_view():
 
     # --- Display shodans ---
     for i, shodan in enumerate(page_shodans, start=start_idx):
-        tab_label = f"{shodan[6]} | {display_outcome(shodan[9])} | {shodan[17]}"
+        tab_label = f"{shodan['shodan_date']} | {display_outcome(shodan['outcome'])} | {shodan['prompt_key']}"
         with st.expander(tab_label):
-            st.text_area("text_prompt", shodan[18], height=100, disabled=True, key=f"text_prompt_textarea_{i}")
-            st.text_area("audio_prompt", shodan[19], height=50, disabled=True, key=f"audio_prompt_textarea_{i}")
-            st.text_area("score_items", shodan[20], height=50, disabled=True, key=f"score_items_textarea_{i}")
+            st.text_area("text_prompt", shodan['text_prompt'], height=100, disabled=True, key=f"text_prompt_textarea_{i}")
+            st.text_area("audio_prompt", shodan['audio_prompt'], height=50, disabled=True, key=f"audio_prompt_textarea_{i}")
+            st.text_area("score_items", shodan['score_items'], height=50, disabled=True, key=f"score_items_textarea_{i}")
 
             replyArr = {
-                "reply": json.loads(shodan[23]),
+                "reply": json.loads(shodan['reply']),
                 "member_name": member_name,
-                "score_items": shodan[20],
-                "audio_prompt": shodan[19],
-                "full_prompt": shodan[24],
+                "score_items": shodan['score_items'],
+                "audio_prompt": shodan['audio_prompt'],
+                "full_prompt": shodan['full_prompt'],
                 "audio_file": None,
-                "audio_features": json.loads(shodan[25]),
-                "audio_feedback": json.loads(shodan[26])
+                "audio_features": json.loads(shodan['audio_features']),
+                "audio_feedback": json.loads(shodan['audio_feedback'])
             }
             success, audio_features, audio_feedback = replyProcess(**replyArr)
 

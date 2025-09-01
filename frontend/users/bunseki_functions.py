@@ -3,6 +3,12 @@ import os
 import tempfile
 from dotenv import load_dotenv
 from pydub import AudioSegment
+from outcomes import outcome_array,display_outcome
+import requests
+import time
+from users.hyouka_view_process import replyProcess
+from backend.save_log import save_evaluation
+from backend.shodans import update_shodan_status
 
 BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8000")
 GPT_API_URL = BASE_API_URL+"/secure-gpt-chat"
@@ -22,6 +28,94 @@ def convert_to_wav(uploaded_file):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_out:
             audio.export(tmp_out.name, format="wav")
             return tmp_out.name
+        
+
+def mi_hyouka_list(shodan_label):
+    with st.container():
+        st.markdown(
+        f"""
+        <div style="
+            padding: 12px; 
+            margin: 8px 0; 
+            border-radius: 12px; 
+            background-color: #f9f9f9; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        ">
+            <h4 style="margin:0;">✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span></h4>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+        
+def evaluation_action(shodans):
+    # st.write(shodans)
+    user_id=st.session_state.get("user_id", "")
+    if st.button("🎯 評価・改善提案を受け取る", key="all_evaluation_btn"):
+        progress = st.progress(0, text="🧠 GPT評価中...")
+        try:
+            for idx, row in enumerate(shodans, start=1):
+                sid = row['id']
+                exp_label = f"{row['shodan_date']} | {display_outcome(row['outcome'])} | {row['prompt_key']}"
+
+                with st.expander(exp_label, expanded=False):
+                    st.text_area("商談テキスト", row['shodan_text'], height=50, disabled=True, key=f"shodan_text_{sid}")
+
+                    with st.spinner("🧠 GPTに問い合わせ中..."):
+                        try:
+                            full_prompt = f"{row['text_prompt']}\n\n{row['shodan_text']}"
+                            start_time = time.time()  # ✅ correct usage
+
+                            res = requests.post(GPT_API_URL, json={"user_message": full_prompt}, timeout=90)
+                            res.raise_for_status()
+
+                            reply = res.json().get("reply", "").strip()
+                            member_name = st.session_state.get("username", "")
+
+                            replyArr = {
+                                "reply": reply,
+                                "member_name": member_name,
+                                "score_items": row['score_items'],
+                                "audio_prompt": row['audio_prompt'],
+                                "full_prompt": full_prompt,
+                                "audio_file": row['audio_file'],
+                                "audio_features": None,
+                                "audio_feedback": None
+                            }
+
+                            success, audio_features, audio_feedback = replyProcess(**replyArr)
+                            if success:
+                                update_shodan_status(sid, is_evaluated=1, is_evaluation_saved=None)
+                                save_payload = {
+                                    "shodan_id": sid,
+                                    "reply": reply,
+                                    "full_prompt": full_prompt,
+                                    "audio_features": audio_features,
+                                    "audio_feedback": audio_feedback,
+                                    "evaluated_by": user_id
+                                }
+                                ok, msg = save_evaluation(**save_payload)
+                                if ok:
+                                    update_shodan_status(sid, is_evaluated=None, is_evaluation_saved=1)
+                                    st.success(f"{msg}")
+                                else:
+                                    st.error(f"{msg}")
+                            else:
+                                st.error("評価に失敗しました。")
+                        except Exception as e:
+                            st.error(f"❌ Error: {e}")
+                        elapsed = int(time.time() - start_time)  # ✅ correct usage
+
+                        st.success(f"✅ GPTの処理が完了しました（所要時間: {elapsed} 秒）")
+                        # st.write(reply)
+
+                # Update progress bar
+                progress.progress(int(idx / len(shodans) * 100), text=f"{idx}/{len(shodans)} 完了")
+
+            progress.progress(100, text="🎉 すべての評価が完了しました！")
+
+        except Exception as e:
+            st.error(f"❌ Error: {e}")
+
 # def promptChecking(team_name):
 #     # ✅ プロンプトが未取得なら取得（エラーハンドリング強化版）
 #     if "prompts" not in st.session_state or not st.session_state.prompts:
