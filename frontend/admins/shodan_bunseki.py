@@ -94,7 +94,7 @@ def shodan_bunseki():
     try:
         # ✅ データ取得（フィルター強化版）
         status_filter = None if status == -1 else status
-        st.success(f"✅ filter_user_id: {selected_user_id}. status_filter: {status_filter}, start_date: {shodan_date_start}, end_date: {shodan_date_end}, kintone_id: {kintone_id}, phone_no: {phone_no}, Evaluation Status: {evaluation_status}")
+        # st.success(f"✅ filter_user_id: {selected_user_id}. status_filter: {status_filter}, start_date: {shodan_date_start}, end_date: {shodan_date_end}, kintone_id: {kintone_id}, phone_no: {phone_no}, Evaluation Status: {evaluation_status}")
         logs = get_evaluations_admin(
             member_id=selected_user_id,
             shodan_date_start=shodan_date_start,
