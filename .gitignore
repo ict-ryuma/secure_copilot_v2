@@ -17,3 +17,4 @@ docker/mysql/data/*
 logs/*
 DBLIVE/*
 uploads/*
+frontend/team_knowledge/*

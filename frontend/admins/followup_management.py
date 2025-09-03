@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime, date, time
 from backend.save_log import (get_followup_schedule)
-def followupManagement():
+def followup_management():
     st.subheader("📅 フォローアップ管理")
     st.info("💡 再商談予定の管理とスケジュール確認ができます")
     

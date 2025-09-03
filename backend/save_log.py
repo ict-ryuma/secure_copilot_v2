@@ -6,6 +6,7 @@ from pathlib import Path
 from .mysql_connector import execute_query,execute_query_with_dict_cursor
 from mysql.connector import Error
 from logger_config import logger
+from frontend.outcomes import display_outcome
 
 # ✅ 修正: 絶対パスに統一
 
@@ -186,6 +187,7 @@ def get_evaluations_admin(
     phone_no=None,
     outcome=None,
     evaluation_status=1,
+    team_id=None,
     score_range=None
 ):
     """全評価ログ or shodans データを条件に応じて取得"""
@@ -226,6 +228,9 @@ def get_evaluations_admin(
         if outcome is not None:
             query += " AND s.outcome = %s"
             params.append(outcome)
+        if team_id is not None:
+            query += " AND s.team_id = %s"
+            params.append(team_id)
 
         query += " AND is_evaluated = 0 and is_evaluation_saved=0 ORDER BY s.created_at DESC"
 
@@ -267,8 +272,13 @@ def get_evaluations_admin(
         if outcome is not None:
             query += " AND s.outcome = %s"
             params.append(outcome)
+        if team_id is not None:
+            query += " AND s.team_id = %s"
+            params.append(team_id)
 
         query += " ORDER BY el.created_at DESC"
+    logger.info(f"Query: {query}")
+    logger.info(f"Params: {params}")
 
     rows = execute_query_with_dict_cursor(query, tuple(params), fetch=True)
     return rows
@@ -334,18 +344,20 @@ def get_conversation_logs(username=None, start_date=None, end_date=None, status_
     rows = execute_query(query, params, fetch=True)
     return rows or []
 
-def get_team_dashboard_stats(team_name=None):
+def get_team_dashboard_stats(team):
     """チーム別ダッシュボード統計を取得"""
-    
-    query = "SELECT * FROM conversation_logs WHERE 1=1"
-    params = []
-    
-    if team_name:
-        # ユーザー名からチーム絞り込み（簡易版）
-        query += " AND username IN (SELECT username FROM users WHERE team_name = %s)"
-        params.append(team_name)
 
-    rows = execute_query(query, params, fetch=True)
+    query = "SELECT el.*,s.outcome,p.score_items FROM evaluation_logs as el " \
+    "INNER JOIN shodans as s ON el.shodan_id=s.id " \
+    "INNER JOIN prompts as p ON s.prompt_id=p.id WHERE 1=1"
+    params = []
+
+    if team['id'] is not None:
+        # ユーザー名からチーム絞り込み（簡易版）
+        query += " AND s.team_id = %s"
+        params.append(team['id'])
+
+    rows = execute_query_with_dict_cursor(query, params, fetch=True)
 
     if not rows:
         return {
@@ -358,23 +370,32 @@ def get_team_dashboard_stats(team_name=None):
     
     # 統計計算
     total_logs = len(rows)
-    scores = [log[6] for log in rows if log[6] is not None]
-    avg_score = sum(scores) / len(scores) if scores else 0
+    scores = [log['score_items'] for log in rows if log['score_items'] is not None]
+    # avg_score = sum(scores) / len(scores) if scores else 0
+    try:
+        avg_score = sum(scores) / len(scores) if scores else 0
+    except (json.JSONDecodeError, TypeError, KeyError):
+        avg_score = 0
     
     # ステータス分布（新カラムに対応）
     status_counts = {}
     for log in rows:
-        status = log[9] if len(log) > 9 else "未設定"
+        # status = log['outcome'] if 'outcome' in log else "未設定"
+        status = display_outcome(log['outcome'])
         status_counts[status] = status_counts.get(status, 0) + 1
     
     # 成約率計算
-    success_count = status_counts.get("成約", 0)
-    completed_deals = success_count + status_counts.get("失注", 0)
+    success_count = status_counts.get(0, 0) # 成約
+    completed_deals = success_count + status_counts.get(1, 0) # 未成約
     success_rate = (success_count / completed_deals * 100) if completed_deals > 0 else 0
     
     # 今月の活動数
+    # current_month = datetime.now().strftime('%Y-%m')
+    # recent_activity = sum(1 for log in rows if log['created_at'].startswith(current_month))
     current_month = datetime.now().strftime('%Y-%m')
-    recent_activity = sum(1 for log in rows if log[1].startswith(current_month))
+    recent_activity = sum(
+        1 for log in rows if log['created_at'].strftime('%Y-%m') == current_month
+    )
 
     return {
         "total_logs": total_logs,
@@ -383,6 +404,55 @@ def get_team_dashboard_stats(team_name=None):
         "status_breakdown": status_counts,
         "recent_activity": recent_activity
     }
+# def get_team_dashboard_stats(team_name=None):
+#     """チーム別ダッシュボード統計を取得"""
+    
+#     query = "SELECT * FROM conversation_logs WHERE 1=1"
+#     params = []
+    
+#     if team_name:
+#         # ユーザー名からチーム絞り込み（簡易版）
+#         query += " AND username IN (SELECT username FROM users WHERE team_name = %s)"
+#         params.append(team_name)
+
+#     rows = execute_query(query, params, fetch=True)
+
+#     if not rows:
+#         return {
+#             "total_logs": 0,
+#             "avg_score": 0,
+#             "success_rate": 0,
+#             "status_breakdown": {},
+#             "recent_activity": 0
+#         }
+    
+#     # 統計計算
+#     total_logs = len(rows)
+#     scores = [log[6] for log in rows if log[6] is not None]
+#     avg_score = sum(scores) / len(scores) if scores else 0
+    
+#     # ステータス分布（新カラムに対応）
+#     status_counts = {}
+#     for log in rows:
+#         status = log[9] if len(log) > 9 else "未設定"
+#         status_counts[status] = status_counts.get(status, 0) + 1
+    
+#     # 成約率計算
+#     success_count = status_counts.get("成約", 0)
+#     completed_deals = success_count + status_counts.get("失注", 0)
+#     success_rate = (success_count / completed_deals * 100) if completed_deals > 0 else 0
+    
+#     # 今月の活動数
+#     current_month = datetime.now().strftime('%Y-%m')
+#     recent_activity = sum(1 for log in rows if log[1].startswith(current_month))
+
+#     return {
+#         "total_logs": total_logs,
+#         "avg_score": round(avg_score, 1),
+#         "success_rate": round(success_rate, 1),
+#         "status_breakdown": status_counts,
+#         "recent_activity": recent_activity
+#     }
 
 def get_followup_schedule(username=None, date_range_days=30, status_filter=None):
     """フォローアップ予定を取得（安全性・拡張性強化版）"""

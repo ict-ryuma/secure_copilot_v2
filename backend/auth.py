@@ -14,18 +14,18 @@ def hash_password(password: str) -> str:
 # ✅ 統一チーム取得関数（プレースホルダー完全除外）
 def get_all_teams_safe() -> List[str]:
     """
-    team_masterから有効なチームのみを取得
+    teamsから有効なチームのみを取得
     全箇所でこの関数を使用することで一貫性を保つ
     """
     try:
         rows=execute_query("""
-            SELECT DISTINCT team_name FROM team_master 
+            SELECT DISTINCT id, team_name FROM teams
             WHERE is_active = 1 
             AND team_name IS NOT NULL
             AND team_name != ''
             ORDER BY team_name
         """, fetch=True)
-        teams = [row[0] for row in rows]
+        teams = [{"id": row[0], "team_name": row[1]} for row in rows]
         print(f"🔍 get_all_teams_safe取得結果: {teams}")
         print(f"DEBUG: result = {teams}")
         return teams
@@ -33,6 +33,27 @@ def get_all_teams_safe() -> List[str]:
     except Exception as e:
         print(f"❌ get_all_teams_safe エラー: {str(e)}")
         return []
+# def get_all_teams_safe() -> List[str]:
+#     """
+#     team_masterから有効なチームのみを取得
+#     全箇所でこの関数を使用することで一貫性を保つ
+#     """
+#     try:
+#         rows=execute_query("""
+#             SELECT DISTINCT team_name FROM team_master 
+#             WHERE is_active = 1 
+#             AND team_name IS NOT NULL
+#             AND team_name != ''
+#             ORDER BY team_name
+#         """, fetch=True)
+#         teams = [row[0] for row in rows]
+#         print(f"🔍 get_all_teams_safe取得結果: {teams}")
+#         print(f"DEBUG: result = {teams}")
+#         return teams
+        
+#     except Exception as e:
+#         print(f"❌ get_all_teams_safe エラー: {str(e)}")
+#         return []
 
 # ✅ 旧関数は廃止予定（互換性のためラッパーとして残す）
 def get_all_teams() -> List[str]:

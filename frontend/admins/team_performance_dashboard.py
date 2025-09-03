@@ -16,15 +16,28 @@ def tpdb():
     
     # ✅ 修正: 安全なチーム取得
     available_teams = get_all_teams_safe()
+    # st.write("利用可能なチーム:", available_teams)
+    # selected_team = st.selectbox(
+    #     "📊 分析対象チーム",
+    #     options=["全社"] + available_teams,
+    #     help="特定チームまたは全社の統計を表示"
+    # )
+    # Add "全社" as a placeholder team
+    available_teams_with_all = [{"id": None, "team_name": "全社"}] + available_teams
+
     selected_team = st.selectbox(
         "📊 分析対象チーム",
-        options=["全社"] + available_teams,
-        help="特定チームまたは全社の統計を表示"
+        options=available_teams_with_all,
+        index=0,  # selects "全社" by default
+        format_func=lambda row: f"{row['team_name']}",  # Display only team_name
+        help="特定チームまたは全社の統計を表示",
+        key="team_select"
     )
+
     
     # ✅ 統計取得
-    team_filter = None if selected_team == "全社" else selected_team
-    stats = get_team_dashboard_stats(team_filter)
+    # team_filter = None if selected_team == "全社" else selected_team
+    stats = get_team_dashboard_stats(selected_team)
     
     # ✅ KPI表示
     st.markdown("### 📊 主要KPI")
@@ -65,7 +78,8 @@ def tpdb():
         
         for i, (status, count) in enumerate(stats["status_breakdown"].items()):
             with status_cols[i]:
-                badge = get_status_badge(status)
+                # badge = get_status_badge(status)
+                badge = status
                 percentage = (count / stats["total_logs"] * 100) if stats["total_logs"] > 0 else 0
                 st.metric(
                     badge,
@@ -75,21 +89,21 @@ def tpdb():
     
     # ✅ チーム別詳細ログ表示
     st.markdown("### 📋 最近のチーム活動")
-    recent_logs = get_conversation_logs(
-        start_date=date.today().replace(day=1),  # 今月分
-        end_date=date.today()
-    )
+    # recent_logs = get_conversation_logs(
+    #     start_date=date.today().replace(day=1),  # 今月分
+    #     end_date=date.today()
+    # )
     
-    if recent_logs:
-        # 簡易表示版
-        for log in recent_logs[:10]:  # 最新10件
-            log_date = log[1]
-            customer_name = log[3] or "（顧客名未記入）"
-            score = log[6]
-            username = log[7]
-            status = log[9] if len(log) > 9 else "未設定"
-            status_badge = get_status_badge(status)
+    # if recent_logs:
+    #     # 簡易表示版
+    #     for log in recent_logs[:10]:  # 最新10件
+    #         log_date = log[1]
+    #         customer_name = log[3] or "（顧客名未記入）"
+    #         score = log[6]
+    #         username = log[7]
+    #         status = log[9] if len(log) > 9 else "未設定"
+    #         status_badge = get_status_badge(status)
             
-            st.write(f"📅 {log_date} | 👤 {username} | 🏢 {customer_name} | {status_badge} | 📊 {score or 'N/A'}点")
-    else:
-        st.info("今月の活動記録がありません")
+    #         st.write(f"📅 {log_date} | 👤 {username} | 🏢 {customer_name} | {status_badge} | 📊 {score or 'N/A'}点")
+    # else:
+    #     st.info("今月の活動記録がありません")

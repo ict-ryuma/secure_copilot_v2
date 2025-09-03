@@ -11,7 +11,7 @@ import fitz  # PyMuPDF
 # --- パス設定 ---
 BASE_DIR = Path(__file__).resolve().parents[1]
 VISION_PATH = os.path.join(BASE_DIR, "team_knowledge", "company.yaml")
-def companyVisionLearn():
+def company_vision_learning():
     st.subheader("🏢 会社ビジョンを学習させる")
 
     # ✅ 現在の保存先パスを表示

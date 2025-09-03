@@ -11,10 +11,10 @@ from admins.login_check import login_check,login
 from admins.logout import logout
 from logger_config import logger
 from admins.teams_and_prompt import team_prompt_settings
-# from admins.company_visions import companyVisionLearn
+from admins.company_visions import company_vision_learning
 from admins.shodan_bunseki import shodan_bunseki
-# from admins.team_performance_dashboard import tpdb
-# from admins.followup_management import followupManagement
+from admins.team_performance_dashboard import tpdb
+from admins.followup_management import followup_management
 import json
 
 app_name="python-APP-admin"
@@ -48,27 +48,24 @@ if st.session_state["authentication_status"] and cookie_user_data:
 
     # # ✅ 修正: チーム管理セクション
     # elif menu == "チーム管理":
-    #     teamManage()
+    #     team_manage()
 
 
     # elif menu == "プロンプトキー管理":
-    #     teamPromptKeyManage()
+    #     team_prompt_key_manage()
 
-    # elif menu == "会社ビジョン学習":
-    #     companyVisionLearn()
-
-    # elif menu == "ユーザー一覧":
-    #     userLists()
+    elif menu == "会社ビジョン学習":
+        company_vision_learning()
 
 
     # # ✅ 修正: 商談評価ログ登録セクションを完全削除し、閲覧専用の商談分析に統合
 
     # # ✅ 既存のチーム別ダッシュボードとフォローアップ管理は変更なし
-    # elif menu == "🏢 チーム別ダッシュボード":
-    #     tpdb()
+    elif menu == "🏢 チーム別ダッシュボード":
+        tpdb()
 
-    # elif menu == "📅 フォローアップ管理":
-    #     followupManagement()   
+    elif menu == "📅 フォローアップ管理":
+        followup_management()   
 else:
     st.write("### 🔐 管理者ログイン")
     login(cookie_manager,app_name,login_type="admin")
