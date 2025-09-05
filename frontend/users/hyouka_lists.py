@@ -8,9 +8,9 @@ from outcomes import outcome_array,display_outcome
 import requests
 from logger_config import logger
 from backend.save_log import save_evaluation
-import math
 import time
 from users.bunseki_functions import mi_hyouka_list,evaluation_action
+from frontend.pagination import paginate
 
 BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8000")
 GPT_API_URL = f"{BASE_API_URL}/secure-gpt-chat"
@@ -44,48 +44,10 @@ def hyouka_list_view():
         st.info("No evaluated shodans found for this user.")
         return
 
-    # --- Items per page select box ---
-    items_per_page_options = [3, 5, 10, 20]
-    if "items_per_page" not in st.session_state:
-        st.session_state.items_per_page = 5
-
-    items_per_page = st.selectbox(
-        "Items per page:",
-        items_per_page_options,
-        index=items_per_page_options.index(st.session_state.items_per_page)
-    )
-
-    # Reset to first page if items_per_page changed
-    if items_per_page != st.session_state.items_per_page:
-        st.session_state.items_per_page = items_per_page
-        st.session_state.current_page = 1
-
-    total_items = len(shodans)
-    total_pages = math.ceil(total_items / items_per_page)
-
-    if "current_page" not in st.session_state:
-        st.session_state.current_page = 1
-
-    # --- Page navigation ---
-    col1, col2, col3 = st.columns([1,2,1])
-    with col1:
-        prev_disabled = st.session_state.current_page == 1
-        if st.button("⬅ Previous", disabled=prev_disabled):
-            st.session_state.current_page -= 1
-    with col3:
-        next_disabled = st.session_state.current_page == total_pages
-        if st.button("Next ➡", disabled=next_disabled):
-            st.session_state.current_page += 1
-
-    st.write(f"Page {st.session_state.current_page} / {total_pages}")
-
-    # --- Slice shodans for current page ---
-    start_idx = (st.session_state.current_page - 1) * items_per_page
-    end_idx = start_idx + items_per_page
-    page_shodans = shodans[start_idx:end_idx]
+    page_datas, start_idx, _ = paginate(shodans)
 
     # --- Display shodans ---
-    for i, shodan in enumerate(page_shodans, start=start_idx):
+    for i, shodan in enumerate(page_datas, start=start_idx):
         tab_label = f"{shodan['shodan_date']} | {display_outcome(shodan['outcome'])} | {shodan['prompt_key']}"
         with st.expander(tab_label):
             st.text_area("text_prompt", shodan['text_prompt'], height=100, disabled=True, key=f"text_prompt_textarea_{i}")

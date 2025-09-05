@@ -9,6 +9,7 @@ from users.hyouka_view_process import replyProcess
 from outcomes import outcome_array,display_outcome
 from users.bunseki_functions import mi_hyouka_list,evaluation_action
 from backend.teams import get_teams
+from frontend.pagination import paginate
 
 def shodan_bunseki():
     st.subheader("📊 商談記録・分析ダッシュボード")
@@ -159,10 +160,9 @@ def shodan_bunseki():
             st.subheader("📋 商談記録一覧（閲覧専用）")
             st.caption("📝 データは商談AIシステムから自動取得されています")
             # ✅ 表示件数制限とページング
-            display_limit = st.selectbox("表示件数", [10, 20, 50, 100], index=1)
-            # if evaluation_status == 1:
-            # ✅ 商談ログ一覧表示（閲覧専用）
-            for i, log in enumerate(logs[:display_limit]):
+            page_datas, start_idx, _ = paginate(logs)
+            # --- Display shodans ---
+            for i, log in enumerate(page_datas, start=start_idx):
                 log_id = log['id']
                 log_date = log['created_at']
                 # log_time = log[2] if log[2] else "未設定"
@@ -223,9 +223,9 @@ def shodan_bunseki():
                     # evaluation_action
             
             # ✅ ページング情報
-            if len(logs) > display_limit:
-                st.info(f"📄 {display_limit}件を表示中（全{len(logs)}件）")
-                st.write("💡 表示件数を変更するか、フィルター条件を調整してください")
+            # if len(logs) > display_limit:
+            #     st.info(f"📄 {display_limit}件を表示中（全{len(logs)}件）")
+            #     st.write("💡 表示件数を変更するか、フィルター条件を調整してください")
         # else:
         #     st.info("Not evaluated")
             if evaluation_status == 0:
