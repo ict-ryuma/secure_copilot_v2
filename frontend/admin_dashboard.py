@@ -8,7 +8,7 @@ from admins.users import register, user_lists
 from admins.teams import team_manage
 from admins.prompts import prompt_manage
 from admins.login_check import login_check,login
-from admins.logout import logout
+from admins.logout import logout,logout_view
 from logger_config import logger
 from admins.teams_and_prompt import team_prompt_settings
 from admins.company_visions import company_vision_learning
@@ -27,8 +27,8 @@ if st.session_state["authentication_status"] and cookie_user_data:
     st.write(f"ようこそ、{st.session_state.username}さん！")
     with st.sidebar:
         menu = menu()
-        # Logout function 
-        logout(cookie_manager,app_name)
+        # Logout function
+        logout_view(cookie_manager,app_name)
         # --- メニュー分岐 ---
     if menu == "チーム管理":
         team_manage()

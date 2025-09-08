@@ -220,7 +220,6 @@ def shodan_bunseki():
                             """)
                 else:
                     mi_hyouka_list(title)
-                    # evaluation_action
             
             # ✅ ページング情報
             # if len(logs) > display_limit:
