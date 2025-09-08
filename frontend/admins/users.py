@@ -2,7 +2,7 @@ import streamlit as st
 from backend.mysql_connector import execute_query
 from backend.auth import get_teams, update_user,register_user,get_all_users
 from logger_config import logger
-# from backend.prompt_loader import check_team_exists
+from pagination import paginate
 def register():
     st.subheader("👤 新規ユーザー登録")
     name = st.text_input("名")
@@ -68,8 +68,9 @@ def user_lists():
         users= get_all_users()
         team_options = get_teams()
         if users:
+            page_datas, start_idx, _ = paginate(users)
             st.markdown("### 👥 ユーザー一覧")
-            for i, user in enumerate(users):
+            for i, user in enumerate(page_datas):
                 user_id, name, username,user_has_team_id, team_id, team_name, is_admin=user
                 
                 with st.expander(f"👤 {username} (チーム: {team_name})"):

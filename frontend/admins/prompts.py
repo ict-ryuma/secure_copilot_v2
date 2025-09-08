@@ -1,6 +1,6 @@
 import streamlit as st
 from backend.prompts import get_prompts,create_prompt,update_prompt,delete_prompt
-from backend.mysql_connector import execute_query
+from pagination import paginate
 
 def prompt_manage():
     adm_user_id = st.session_state["user_id"]
@@ -10,7 +10,8 @@ def prompt_manage():
         prompts=get_prompts(only_active=None)
         st.markdown("### 📋 現在のプロンプト一覧")
         if prompts:
-            for i, prompt in enumerate(prompts):
+            page_datas, start_idx, _ = paginate(prompts)
+            for i, prompt in enumerate(page_datas):
                 # st.write(prompt)
                 prompt_id, prompt_key, text_prompt,audio_prompt,score_items,notes, is_active, created_by, created_at, updated_at = prompt
                 if is_active==1:

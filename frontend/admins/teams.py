@@ -1,5 +1,6 @@
 import streamlit as st
 from backend.teams import get_teams,create_team,update_team,delete_team
+from pagination import paginate
 def team_manage():
     adm_user_id = st.session_state["user_id"]
     st.subheader("🏷️ チーム一覧管理")
@@ -8,7 +9,8 @@ def team_manage():
         
         st.markdown("### 📋 現在のチーム一覧")
         if teams:
-            for i, t in enumerate(teams):
+            page_datas, start_idx, _ = paginate(teams)
+            for i, t in enumerate(page_datas):
                 # ✅ 修正: 9列に対応
                 team_id, team_name, descriptions, is_active, created_by, created_at, updated_at = t
                 if is_active==1:
