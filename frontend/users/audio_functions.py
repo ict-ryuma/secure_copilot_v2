@@ -5,7 +5,7 @@ def save_audio_file(audio_file, upload_dir = "uploads"):
     if audio_file is not None:
         os.makedirs(upload_dir, exist_ok=True)
         # Save file to directory
-        audio_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{audio_file.name}"
+        audio_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{audio_file.name[-20:]}"
         file_path = os.path.join(upload_dir, audio_filename)
         with open(file_path, "wb") as f:
             f.write(audio_file.getbuffer())
