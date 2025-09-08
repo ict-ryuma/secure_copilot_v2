@@ -16,3 +16,4 @@ loguru
 streamlit-authenticator
 streamlit-javascript
 watchfiles
+streamlit-autorefresh
