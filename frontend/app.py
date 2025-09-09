@@ -45,6 +45,8 @@ if st.session_state["authentication_status"] and cookie_user_data:
     # --- サイドバー：ログインUI or ログイン情報 ---
     with st.sidebar:
         menu = menu()
+        # Logout function
+        logout_view(cookie_manager,app_name)
         st.markdown("---")
         st.write(menu)
     if menu == "商談を作成":
@@ -52,9 +54,7 @@ if st.session_state["authentication_status"] and cookie_user_data:
     if menu == "未評価の商談を選択してください":
         mi_hyouka_list_view()
     if menu == "評価の商談を選択してください":
-        hyouka_list_view() 
-    if menu == "🔓 ログアウト":
-        logout_view(cookie_manager,app_name) 
+        hyouka_list_view()
 else:
     # --- ログイン画面 ---
     st.write("### 🔐 ログイン画面")

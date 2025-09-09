@@ -37,18 +37,23 @@ def replyProcess(reply,member_name,score_items, audio_prompt,full_prompt,audio_f
                 audio_features = extract_audio_features_from_uploaded_file(audio_file)
                 st.json(audio_features)
 
-                audio_feedback = evaluate_with_gpt(f"{audio_prompt}\n\n{audio_features}")
+                success, audio_feedback = evaluate_with_gpt(f"{audio_prompt}\n\n{audio_features}")
                 st.markdown("### 🤖 GPTによる音声評価")
-                st.success(audio_feedback)
+                if success:
+                    st.success(audio_feedback)
+                else:
+                    st.error(audio_feedback)
+                return success, audio_features, None
             except Exception as e:
                 st.error(f"❌ 音声処理エラー: {e}")
+                return False, audio_features, None
         elif audio_feedback:
             st.markdown("### 🎧 音声特徴量（参考）")
             st.json(audio_features)
 
             st.markdown("### 🤖 GPTによる音声評価")
             st.success(audio_feedback)
-        return True, audio_features,audio_feedback
+        return True, audio_features, audio_feedback
     else:
         st.error("❌ GPTからの返信が空です。以下を確認してください：")
         st.write("1. プロンプト設定が正しいか")
@@ -59,4 +64,4 @@ def replyProcess(reply,member_name,score_items, audio_prompt,full_prompt,audio_f
         if st.session_state.get("is_admin", False):
             st.write("**送信したプロンプト（最初の500文字）:**")
             st.text(full_prompt[:500])
-        return False,"",""
+        return False,audio_features,None

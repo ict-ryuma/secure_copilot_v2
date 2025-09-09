@@ -57,6 +57,6 @@ def hyouka_list_view():
                 "full_prompt": shodan['full_prompt'],
                 "audio_file": None,
                 "audio_features": json.loads(shodan['audio_features']),
-                "audio_feedback": json.loads(shodan['audio_feedback'])
+                "audio_feedback": json.loads(shodan['audio_feedback']) if shodan['audio_feedback'] else None
             }
             success, audio_features, audio_feedback = replyProcess(**replyArr)
