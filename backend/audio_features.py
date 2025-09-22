@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from tempfile import NamedTemporaryFile
 import webrtcvad
 import requests
+from logger_config import logger
 
 # ==== 環境変数・API初期化 ====
 load_dotenv()
@@ -138,9 +139,10 @@ def evaluate_with_gpt(prompt_text):
             timeout=30
         )
         response.raise_for_status()
-        return response.json().get("reply", "評価に失敗しました")
+        return True, response.json().get("reply", "評価に失敗しました")
     except Exception as e:
-        return f"エラー: {e}"
+        logger.error(f"❌ GPT評価エラー: {e}")
+        return False, f"❌ GPT評価エラー: {e}"
 
 def extract_audio_features_from_uploaded_file(uploaded_file_or_path):
     if isinstance(uploaded_file_or_path, str) and os.path.isfile(uploaded_file_or_path):
@@ -161,19 +163,19 @@ def extract_audio_features_from_uploaded_file(uploaded_file_or_path):
         "通話時間（秒）": loudness["duration_sec"]
     }
 
-if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python audio_features.py <wav_path> <transcript_path>")
-        sys.exit(1)
+# if __name__ == "__main__":
+#     if len(sys.argv) != 3:
+#         print("Usage: python audio_features.py <wav_path> <transcript_path>")
+#         sys.exit(1)
 
-    wav_path = sys.argv[1]
-    txt_path = sys.argv[2]
+#     wav_path = sys.argv[1]
+#     txt_path = sys.argv[2]
 
-    df = extract_vad_segments(wav_path)
-    loudness = analyze_loudness(wav_path)
-    transcript = open(txt_path, encoding="utf-8").read()
-    prompt = create_prompt(transcript, df, loudness)
-    gpt_result = evaluate_with_gpt(prompt)
+#     df = extract_vad_segments(wav_path)
+#     loudness = analyze_loudness(wav_path)
+#     transcript = open(txt_path, encoding="utf-8").read()
+#     prompt = create_prompt(transcript, df, loudness)
+#     gpt_result = evaluate_with_gpt(prompt)
 
-    print("\n==== 🧠 GPT評価結果 ====")
-    print(gpt_result)
+#     print("\n==== 🧠 GPT評価結果 ====")
+#     print(gpt_result)

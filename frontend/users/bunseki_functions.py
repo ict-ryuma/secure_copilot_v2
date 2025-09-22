@@ -31,26 +31,90 @@ def convert_to_wav(uploaded_file):
         
 
 def mi_hyouka_list(shodan_label):
+    is_admin = st.session_state.get("is_admin", False)
     with st.container():
         st.markdown(
-        f"""
-        <div style="
-            padding: 12px; 
-            margin: 8px 0; 
-            border-radius: 12px; 
-            background-color: #f9f9f9; 
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        ">
-            <h4 style="margin:0;">✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span></h4>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            f"""
+            <div style="
+                padding: 12px;
+                margin: 8px 0;
+                border-radius: 12px;
+                background-color: #f9f9f9;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                height: 100%;
+                display: flex;
+                align-items: center;
+            ">
+                <h4 style="margin:0;">✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span></h4>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
         
+    # with st.container():
+    #     st.markdown(
+    #     f"""
+    #     <div style="
+    #         padding: 12px; 
+    #         margin: 8px 0; 
+    #         border-radius: 12px; 
+    #         background-color: #f9f9f9; 
+    #         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    #     ">
+    #         <h4 style="margin:0;">✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span></h4>
+    #     </div>
+    #     """,
+    #     unsafe_allow_html=True
+    # )
+    # with st.container():
+    #     shodan_id=1
+    #     st.markdown(
+    #         f"""
+    #         <div style="
+    #             display: flex;
+    #             align-items: center;
+    #             justify-content: space-between;
+    #             padding: 12px;
+    #             margin: 8px 0;
+    #             border-radius: 12px;
+    #             background-color: #f9f9f9;
+    #             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    #         ">
+    #             <h4 style="margin:0; flex-grow:1;">
+    #                 ✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span>
+    #             </h4>
+    #             <form action="" method="post">
+    #                 <button name="delete_{shodan_id}" type="submit" style="
+    #                     background: none;
+    #                     border: none;
+    #                     color: #e53e3e;
+    #                     font-size: 18px;
+    #                     cursor: pointer;
+    #                 ">❌</button>
+    #             </form>
+    #         </div>
+    #         """,
+    #         unsafe_allow_html=True
+    #     )
+
+
 def evaluation_action(shodans):
-    # st.write(shodans)
-    user_id=st.session_state.get("user_id", "")
-    if st.button("🎯 評価・改善提案を受け取る", key="all_evaluation_btn"):
+    user_id = st.session_state.get("user_id", "")
+
+    # Initialize state
+    if "evaluation_started" not in st.session_state:
+        st.session_state["evaluation_started"] = False
+
+    # Show button only if not started yet
+    if not st.session_state["evaluation_started"]:
+        if st.button("🎯 評価・改善提案を受け取る", key="all_evaluation_btn"):
+            st.session_state["evaluation_started"] = True
+            st.experimental_rerun()
+
+    # If started, run evaluation
+    if st.session_state["evaluation_started"]:
         progress = st.progress(0, text="🧠 GPT評価中...")
         try:
             for idx, row in enumerate(shodans, start=1):
@@ -63,7 +127,7 @@ def evaluation_action(shodans):
                     with st.spinner("🧠 GPTに問い合わせ中..."):
                         try:
                             full_prompt = f"{row['text_prompt']}\n\n{row['shodan_text']}"
-                            start_time = time.time()  # ✅ correct usage
+                            start_time = time.time()
 
                             res = requests.post(GPT_API_URL, json={"user_message": full_prompt}, timeout=90)
                             res.raise_for_status()
@@ -103,18 +167,31 @@ def evaluation_action(shodans):
                                 st.error("評価に失敗しました。")
                         except Exception as e:
                             st.error(f"❌ Error: {e}")
-                        elapsed = int(time.time() - start_time)  # ✅ correct usage
-
+                        elapsed = int(time.time() - start_time)
                         st.success(f"✅ GPTの処理が完了しました（所要時間: {elapsed} 秒）")
-                        # st.write(reply)
 
-                # Update progress bar
                 progress.progress(int(idx / len(shodans) * 100), text=f"{idx}/{len(shodans)} 完了")
 
             progress.progress(100, text="🎉 すべての評価が完了しました！")
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
+    st.session_state["evaluation_started"] = False
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # def promptChecking(team_name):
 #     # ✅ プロンプトが未取得なら取得（エラーハンドリング強化版）

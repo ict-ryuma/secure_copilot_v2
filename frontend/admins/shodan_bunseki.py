@@ -172,8 +172,10 @@ def shodan_bunseki():
                 # status = log[6] if len(log) > 6 else "未設定"
                 # followup_date = log[5] if len(log) > 5 else None
                 status_badge = display_outcome(log['outcome'])
-                formatted = log_date.strftime("%Y年%02m月%02d日 %H時%M分%S秒")
+                # formatted = log_date.strftime("%Y年%02m月%02d日 %H時%M分%S秒")
+                formatted = log['shodan_date'].strftime("%Y年%02m月%02d日")
                 title = f"{i+1} 📅 {formatted} | {member_name} | {status_badge}"
+                # title = f" 📅 {formatted} | {member_name} | {status_badge}"
                 # | 📊 {score or 'N/A'}点"
                 if evaluation_status == 1:
                     with st.expander(title):
@@ -219,14 +221,14 @@ def shodan_bunseki():
                                 フィールド数: {len(logs)}
                             """)
                 else:
-                    mi_hyouka_list(title)
-            
-            # ✅ ページング情報
-            # if len(logs) > display_limit:
-            #     st.info(f"📄 {display_limit}件を表示中（全{len(logs)}件）")
-            #     st.write("💡 表示件数を変更するか、フィルター条件を調整してください")
-        # else:
-        #     st.info("Not evaluated")
+                    col1, col2 = st.columns([10, 1])
+                    with col1:
+                        mi_hyouka_list(title)
+                    # with col2:
+                    #     if st.button("❌", key=f"delete_{log['id']}"):
+                    #         # 👉 do your delete logic here
+                    #         # st.session_state["deleted_shodan"] = log['id']
+                    #         st.success(f"商談 {title} を削除しました")
             if evaluation_status == 0:
                 evaluation_action(logs)
         else:

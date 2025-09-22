@@ -63,6 +63,16 @@ def register():
 
 def user_lists():
     st.subheader("👥 登録ユーザー一覧と編集")
+    # Show message if exists
+    if "update_msg" in st.session_state:
+        if st.session_state.get("update_success"):
+            st.success(st.session_state["update_msg"])
+        else:
+            st.error(st.session_state["update_msg"])
+        
+        # Clear message after showing once
+        del st.session_state["update_msg"]
+        del st.session_state["update_success"]
     try:
         adm_user_id = st.session_state["user_id"]
         users= get_all_users()
@@ -72,8 +82,8 @@ def user_lists():
             st.markdown("### 👥 ユーザー一覧")
             for i, user in enumerate(page_datas):
                 user_id, name, username,user_has_team_id, team_id, team_name, is_admin=user
-                
-                with st.expander(f"👤 {username} (チーム: {team_name})"):
+                expanded = st.session_state.get("open_user_expander") == user_id
+                with st.expander(f"👤 {username} (チーム: {team_name})", expanded=expanded):
                     # ✅ ユーザー編集フォーム
                     with st.form(f"user_form_{user_id}"):
                         st.markdown(f"**ユーザー名（ログインID）:** `{username}`")
@@ -130,7 +140,11 @@ def user_lists():
                                 team_id=selected_team_col[0]
                             )
                             if success:
-                                st.success(msg)
+                                # Store message and status in session_state
+                                st.session_state["update_msg"] = msg
+                                st.session_state["update_success"] = success
+                                st.session_state["open_user_expander"] = user_id
+                                st.experimental_rerun()  # 更新後にリロードして最新状態を反映
                             else:
                                 st.error(msg)
         else:
