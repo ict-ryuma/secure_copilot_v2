@@ -278,3 +278,7 @@ def create_aws_prefix_url(last_success_time,now):
         current_date += timedelta(days=1)
     return json_file_prefixes
 
+
+if __name__ == "__main__":
+    download_file_from_s3()
+

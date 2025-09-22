@@ -48,7 +48,7 @@ def replyProcess(reply,member_name,score_items, audio_prompt,full_prompt,audio_f
             except Exception as e:
                 logger.error(f"❌ 音声処理エラー (In reply process): {e}")
                 return False, audio_features, None
-        elif audio_feedback:
+        elif audio_feedback or audio_feedback != "" or audio_feedback is not None:
             st.markdown("### 🎧 音声特徴量（参考）")
             st.json(audio_features)
 
