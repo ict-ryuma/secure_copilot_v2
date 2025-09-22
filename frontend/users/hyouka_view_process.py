@@ -41,11 +41,12 @@ def replyProcess(reply,member_name,score_items, audio_prompt,full_prompt,audio_f
                 st.markdown("### 🤖 GPTによる音声評価")
                 if success:
                     st.success(audio_feedback)
+                    return success, audio_features, audio_feedback
                 else:
-                    st.error(audio_feedback)
-                return success, audio_features, None
+                    logger.error(audio_feedback)
+                    return False, audio_features, None
             except Exception as e:
-                st.error(f"❌ 音声処理エラー: {e}")
+                logger.error(f"❌ 音声処理エラー (In reply process): {e}")
                 return False, audio_features, None
         elif audio_feedback:
             st.markdown("### 🎧 音声特徴量（参考）")
@@ -53,7 +54,7 @@ def replyProcess(reply,member_name,score_items, audio_prompt,full_prompt,audio_f
 
             st.markdown("### 🤖 GPTによる音声評価")
             st.success(audio_feedback)
-        return True, audio_features, audio_feedback
+            return True, audio_features, audio_feedback
     else:
         st.error("❌ GPTからの返信が空です。以下を確認してください：")
         st.write("1. プロンプト設定が正しいか")

@@ -98,7 +98,7 @@ def create_shodans_table():
             kintone_id VARCHAR(10) DEFAULT NULL,
             phone_no VARCHAR(14) NOT NULL,
             shodan_date DATE DEFAULT NULL,
-            shodan_text TEXT DEFAULT NULL,
+            shodan_text MEDIUMTEXT DEFAULT NULL,
             audio_file VARCHAR(150) DEFAULT NULL,
             outcome VARCHAR(50) DEFAULT NULL,
             is_evaluated TINYINT DEFAULT 0,
@@ -196,13 +196,8 @@ def create_shodan_details_table():
 
 def add_some_columns_to_shodans_table():
     table_name="shodans"
-    check_columns_and_create(TableName=table_name,
-        ColumnName="customer_number",
-        ColumnType="VARCHAR(20)",
-        Default="NULL",
-        Comment="Customer Phone number column",
-        After="phone_no"
-    )
+    check_columns_and_create(TableName=table_name,ColumnName="customer_number",ColumnType="VARCHAR(20)", Default="NULL",Comment="Customer Phone number column",After="phone_no")
+    check_columns_and_create(TableName=table_name,ColumnName="team_has_prompt_id",ColumnType="VARCHAR(10)", Default="NULL",Comment="Team has prompt ID",After="user_id")
 def add_some_columns_to_users_table():
     table_name="users"
     check_columns_and_create(TableName=table_name,ColumnName="first_name",ColumnType="VARCHAR(30)",Default="NULL",Comment="User first name",After="id")
@@ -251,5 +246,36 @@ def check_columns_and_create(
         print(f"✅ {ColumnName} column added to {TableName} table {after_clause or ''}")
     else:
         print(f"ℹ {ColumnName} column already exists in {TableName}")
+
+
+def check_column_and_delete(TableName=None, ColumnName=None):
+    """Delete column from table if it exists"""
+
+    # ✅ Basic validation
+    if not TableName or not ColumnName:
+        print("❌ TableName and ColumnName are required.")
+        return
+
+    # 1️⃣ Check if the column exists
+    query_check = f"""
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE table_name = '{TableName}'
+          AND column_name = '{ColumnName}'
+          AND table_schema = DATABASE();
+    """
+    exists = execute_query(query_check, fetch=True)
+
+    if exists and exists[0][0] > 0:
+        # 2️⃣ Drop the column
+        query_drop = f"""
+            ALTER TABLE `{TableName}`
+            DROP COLUMN `{ColumnName}`;
+        """
+        execute_query(query_drop)
+        print(f"🗑 Column `{ColumnName}` deleted from `{TableName}` table.")
+    else:
+        print(f"ℹ Column `{ColumnName}` does not exist in `{TableName}`.")
+
 
 

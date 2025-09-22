@@ -24,7 +24,7 @@ GPT_API_URL = BASE_API_URL+"/secure-gpt-chat"
 
 def evaluationForm(dbPrompts):
     user_id=st.session_state.get("user_id", "")
-    team_id=st.session_state.get("team_id", "")
+    # team_id=st.session_state.get("team_id", "")
     # selected_prompts=setPrompts(dbPrompts)
     # st.write(dbPrompts)
     st.subheader("👨‍💼 営業評価フォーム")
@@ -85,8 +85,9 @@ def evaluationForm(dbPrompts):
         for i, selected_prompt in enumerate(dbPrompts):
             shodan_array = {
                 "user_id": user_id,
-                "team_id": team_id,
-                "prompt_id": selected_prompt[1],  # assuming selected_prompt is (id, name)
+                # "team_id": team_id,
+                # "prompt_id": selected_prompt[1],  # assuming selected_prompt is (id, name)
+                "team_has_prompt_id": selected_prompt[0],
                 "prompt_key": selected_prompt[4],  # assuming selected_prompt is (id, name)
                 "kintone_id": kintone_id,
                 "phone_no": phone_no,

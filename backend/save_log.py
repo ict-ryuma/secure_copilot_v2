@@ -198,9 +198,13 @@ def get_evaluations_admin(
     # case 1: evaluation_status=0 → shodans
     # ---------------------------
     if evaluation_status == 0:
-        query = "SELECT s.*,u.name,u.username,p.prompt_key,p.text_prompt,p.audio_prompt,p.score_items,p.notes FROM shodans s " \
+        query = "SELECT s.id AS shodan_id,s.user_id,s.team_has_prompt_id,s.kintone_id,s.phone_no," \
+        "s.customer_number,s.shodan_date,s.shodan_text,s.audio_file,s.outcome,s.is_evaluated,s.is_evaluation_saved," \
+        "s.created_at,s.updated_at," \
+        "u.name,u.username,p.prompt_key,p.text_prompt,p.audio_prompt,p.score_items,p.notes FROM shodans s " \
         "INNER JOIN users u ON s.user_id = u.id " \
-        "INNER JOIN prompts p ON s.prompt_id = p.id " \
+        "INNER JOIN team_has_prompts thp ON s.team_has_prompt_id = thp.id " \
+        "INNER JOIN prompts p ON thp.prompt_id = p.id " \
         "WHERE 1=1"
 
         if member_id is not None:
@@ -229,21 +233,22 @@ def get_evaluations_admin(
             query += " AND s.outcome = %s"
             params.append(outcome)
         if team_id is not None:
-            query += " AND s.team_id = %s"
+            query += " AND thp.team_id = %s"
             params.append(team_id)
 
-        query += " AND is_evaluated = 0 and is_evaluation_saved=0 ORDER BY s.created_at DESC"
+        query += " AND s.is_evaluated = 0 and s.is_evaluation_saved=0 ORDER BY s.created_at DESC"
 
     # ---------------------------
     # case 2: evaluation_status=1 → evaluation_logs
     # ---------------------------
     else:
         query = """
-            SELECT el.*, s.shodan_date, s.kintone_id, s.phone_no,s.shodan_text, s.outcome, s.user_id,u.name,u.username,p.prompt_key,p.text_prompt,p.audio_prompt,p.score_items,p.notes
+            SELECT el.*,s.team_has_prompt_id,s.shodan_date, s.kintone_id, s.phone_no,s.shodan_text, s.outcome, s.user_id,u.name,u.username,p.prompt_key,p.text_prompt,p.audio_prompt,p.score_items,p.notes
             FROM evaluation_logs el
             JOIN shodans s ON el.shodan_id = s.id
             JOIN users u ON s.user_id = u.id
-            JOIN prompts p ON s.prompt_id = p.id
+            JOIN team_has_prompts thp ON s.team_has_prompt_id = thp.id
+            JOIN prompts p ON thp.prompt_id = p.id
             WHERE 1=1
         """
 
@@ -273,7 +278,7 @@ def get_evaluations_admin(
             query += " AND s.outcome = %s"
             params.append(outcome)
         if team_id is not None:
-            query += " AND s.team_id = %s"
+            query += " AND thp.team_id = %s"
             params.append(team_id)
 
         query += " ORDER BY el.created_at DESC"

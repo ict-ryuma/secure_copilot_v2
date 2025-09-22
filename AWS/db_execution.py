@@ -7,6 +7,7 @@ import zoneinfo
 import boto3
 from urllib.parse import urlparse
 import os
+from pydub import AudioSegment
 
 
 jst = zoneinfo.ZoneInfo("Asia/Tokyo")
@@ -69,10 +70,10 @@ def get_prompts_for_team(team_id):
     Returns a list of prompt dicts.
     """
     query = """
-        SELECT p.id as prompt_id
+        SELECT p.id as prompt_id,thp.id as team_has_prompt_id, p.prompt_key, p.text_prompt
         FROM team_has_prompts thp
         JOIN prompts p ON thp.prompt_id = p.id
-        WHERE thp.team_id = %s AND thp.is_active = 1 AND p.is_active = 1
+        WHERE thp.team_id = %s AND thp.is_active = 1 AND thp.is_active = 1
     """
     return execute_query_with_dict_cursor(query, (team_id,), fetch=True)
 
@@ -109,10 +110,16 @@ def file_path_to_date(file_path):
 
     return file_name,file_time_local
 
-def download_audio_from_s3(s3_uri, local_dir="uploads"):
+
+# from pydub import AudioSegment
+# import os
+# from urllib.parse import urlparse
+
+def download_audio_from_s3(s3_uri, local_dir="uploads", aws_prefix="", force_mono=True):
     """
     Downloads an audio file from the given S3 URI to the specified local directory.
-    Returns the local file path.
+    Appends the date part from aws_prefix to the local path.
+    Returns the local file path (always WAV if force_mono=True).
     """
     parsed = urlparse(s3_uri)
     if parsed.scheme != "s3":
@@ -120,17 +127,65 @@ def download_audio_from_s3(s3_uri, local_dir="uploads"):
     bucket = parsed.netloc
     key = parsed.path.lstrip("/")
     filename = os.path.basename(key)
-    local_path = os.path.join(local_dir, filename)
 
-    # Ensure the local directory exists
-    os.makedirs(local_dir, exist_ok=True)
+    # Extract date part (/2025/09/22) from aws_prefix
+    prefix_parts = aws_prefix.split("/")
+    date_part = "/".join(prefix_parts[-3:])   # YYYY/MM/DD
 
+    # Build full local directory path
+    local_dir_with_date = os.path.join(local_dir, date_part)
+    os.makedirs(local_dir_with_date, exist_ok=True)
+
+    # Local save path (original format)
+    local_path = os.path.join(local_dir_with_date, filename)
+
+    # Download from S3
     s3 = initialize_s3_client(type="s3")
     s3.download_file(bucket, key, local_path)
+
+    # If requested, ensure mono WAV output
+    if force_mono:
+        audio = AudioSegment.from_file(local_path)
+        audio = audio.set_channels(1)  # force mono
+        wav_path = os.path.splitext(local_path)[0] + ".wav"
+        audio.export(wav_path, format="wav")
+        return wav_path
+
     return local_path
 
+# def download_audio_from_s3(s3_uri, local_dir="uploads", aws_prefix=""):
+#     """
+#     Downloads an audio file from the given S3 URI to the specified local directory.
+#     Appends the date part from aws_prefix to the local path.
+#     Returns the local file path.
+#     """
+#     parsed = urlparse(s3_uri)
+#     if parsed.scheme != "s3":
+#         raise ValueError("Invalid S3 URI")
+#     bucket = parsed.netloc
+#     key = parsed.path.lstrip("/")
+#     filename = os.path.basename(key)
 
-def insert_shodans_for_team(shodan_array,prompt_id):
+#     # Extract date part (/2025/09/22) from aws_prefix
+#     prefix_parts = aws_prefix.split("/")
+#     date_part = "/".join(prefix_parts[-3:])   # take last 3 parts (YYYY/MM/DD)
+
+#     # Build full local directory path
+#     local_dir_with_date = os.path.join(local_dir, date_part)
+#     local_path = os.path.join(local_dir_with_date, filename)
+
+#     # Ensure directory exists
+#     os.makedirs(local_dir_with_date, exist_ok=True)
+
+#     # Download from S3
+#     s3 = initialize_s3_client(type="s3")
+#     s3.download_file(bucket, key, local_path)
+
+#     return local_path
+
+
+
+def insert_shodans_for_team(shodan_array,team_has_prompt_id):
     """
     Insert shodans records for all prompts of a given team.
     
@@ -141,15 +196,14 @@ def insert_shodans_for_team(shodan_array,prompt_id):
 
     query = '''
         INSERT INTO shodans (
-            user_id, team_id, prompt_id, phone_no, customer_number, shodan_date, shodan_text,audio_file
+            user_id, team_has_prompt_id, phone_no, customer_number, shodan_date, shodan_text,audio_file
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     '''
 
     values = (
         shodan_array['user_id'],
-        shodan_array['team_id'],
-        prompt_id,
+        team_has_prompt_id,
         shodan_array['phone_no'],
         shodan_array['customer_number'],
         shodan_array['shodan_date'],

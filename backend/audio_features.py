@@ -145,23 +145,27 @@ def evaluate_with_gpt(prompt_text):
         return False, f"❌ GPT評価エラー: {e}"
 
 def extract_audio_features_from_uploaded_file(uploaded_file_or_path):
-    if isinstance(uploaded_file_or_path, str) and os.path.isfile(uploaded_file_or_path):
-        wav_path = uploaded_file_or_path
-    else:
-        with NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-            tmp.write(uploaded_file_or_path.read())
-            wav_path = tmp.name
+    try:
+        if isinstance(uploaded_file_or_path, str) and os.path.isfile(uploaded_file_or_path):
+            wav_path = uploaded_file_or_path
+        else:
+            with NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+                tmp.write(uploaded_file_or_path.read())
+                wav_path = tmp.name
 
-    df = extract_vad_segments(wav_path)
-    loudness = analyze_loudness(wav_path)
+        df = extract_vad_segments(wav_path)
+        loudness = analyze_loudness(wav_path)
 
-    return {
-        "平均発話時間（秒）": round(df["duration"].mean(), 2),
-        "最大沈黙時間（秒）": round(df["start"].iloc[1:].sub(df["end"].shift()[1:]).max(), 2),
-        "平均音量（dBFS）": loudness["average_loudness_dBFS"],
-        "最大音量（dBFS）": loudness["max_loudness_dBFS"],
-        "通話時間（秒）": loudness["duration_sec"]
-    }
+        return {
+            "平均発話時間（秒）": round(df["duration"].mean(), 2),
+            "最大沈黙時間（秒）": round(df["start"].iloc[1:].sub(df["end"].shift()[1:]).max(), 2),
+            "平均音量（dBFS）": loudness["average_loudness_dBFS"],
+            "最大音量（dBFS）": loudness["max_loudness_dBFS"],
+            "通話時間（秒）": loudness["duration_sec"]
+        }
+    except Exception as e:
+        logger.error(f"❌ 音声処理エラー: {e}")
+        return ""
 
 # if __name__ == "__main__":
 #     if len(sys.argv) != 3:
