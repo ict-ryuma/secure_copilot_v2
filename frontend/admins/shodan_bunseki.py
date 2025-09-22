@@ -163,8 +163,8 @@ def shodan_bunseki():
             page_datas, start_idx, _ = paginate(logs)
             # --- Display shodans ---
             for i, log in enumerate(page_datas, start=start_idx):
-                log_id = log['id']
-                log_date = log['created_at']
+                # shodan_id = log['shodan_id']
+                # log_date = log['created_at']
                 # log_time = log[2] if log[2] else "未設定"
                 member_name = log['username'] or "（顧客名未記入）"
                 # score = log[8]
@@ -197,7 +197,7 @@ def shodan_bunseki():
                         info_col1, info_col2 = st.columns(2)
                         with info_col1:
                             st.markdown("**📋 商談情報**")
-                            st.write(f"📅 実施日時: {log_date}")
+                            st.write(f"📅 実施日時: {created_at}")
                             st.write(f"👤 お客様: {member_name}")
                             # st.write(f"📊 AIスコア: {score}点" if score else "📊 AIスコア: 未評価")
                             st.write(f"🚦 AI分類: {status_badge}")
@@ -206,31 +206,18 @@ def shodan_bunseki():
                             st.markdown("**🔍 記録情報**")
                             st.write(f"📝 担当者: {member_name}")
                             st.write(f"📅 登録日時: {created_at}")
-                            # if followup_date:
-                            #     st.write(f"📅 フォロー予定: {followup_date}")
-                            # if tags:
-                            #     st.write(f"🏷️ AIタグ: {tags}")
-                        
-                    # ✅ 記録メタデータ（管理者のみ）
-                    if st.session_state.get("is_admin", False):
-                        with st.expander("🔧 記録詳細（管理者のみ）"):
-                            st.code(f"""
-                                記録ID: {log_id}
-                                データソース: 商談AIシステム
-                                登録タイムスタンプ: {created_at}
-                                フィールド数: {len(logs)}
-                            """)
                 else:
                     col1, col2 = st.columns([10, 1])
                     with col1:
-                        mi_hyouka_list(title)
+                        mi_hyouka_list(title, log['shodan_id'], log['outcome'])
                     # with col2:
                     #     if st.button("❌", key=f"delete_{log['id']}"):
                     #         # 👉 do your delete logic here
                     #         # st.session_state["deleted_shodan"] = log['id']
                     #         st.success(f"商談 {title} を削除しました")
             if evaluation_status == 0:
-                evaluation_action(logs)
+                evaluation_action(page_datas)
+                # st.write(f"page_datas: {len(page_datas)}")
         else:
             st.info("📭 指定した条件の商談記録は見つかりませんでした")
             st.markdown("""

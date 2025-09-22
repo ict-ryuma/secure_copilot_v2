@@ -6,8 +6,9 @@ def save_shodan(shodan_array):
     """評価プロンプトをDBに保存"""
     logger.info(f"🚀 save_shodan 開始: {shodan_array}")
     user_id=shodan_array['user_id']
-    team_id=shodan_array['team_id']
-    prompt_id=shodan_array['prompt_id']
+    # team_id=shodan_array['team_id']
+    # prompt_id=shodan_array['prompt_id']
+    team_has_prompt_id=shodan_array['team_has_prompt_id']
     kintone_id=shodan_array['kintone_id']
     phone_no=shodan_array['phone_no']
     shodan_date=shodan_array['shodan_date']
@@ -17,16 +18,16 @@ def save_shodan(shodan_array):
     prompt_key=shodan_array['prompt_key']
     created_by=shodan_array['created_by']
     rows = execute_query('''
-        SELECT id FROM shodans WHERE user_id = %s AND team_id = %s AND prompt_id= %s AND kintone_id = %s AND phone_no = %s AND shodan_date = %s AND shodan_text = %s AND outcome = %s
-    ''', (user_id, team_id, prompt_id, kintone_id, phone_no, shodan_date, shodan_text, outcome), fetch=True)
+        SELECT id FROM shodans WHERE user_id = %s AND team_has_prompt_id = %s AND kintone_id = %s AND phone_no = %s AND shodan_date = %s AND shodan_text = %s AND outcome = %s
+    ''', (user_id, team_has_prompt_id, kintone_id, phone_no, shodan_date, shodan_text, outcome), fetch=True)
     if rows and len(rows) > 0:
         return False, f"❌ すでに同じ評価が存在します。prompt_key: {prompt_key}"
     
     try:
         execute_query('''
-            INSERT INTO shodans (user_id, team_id,prompt_id, kintone_id, phone_no, shodan_date, shodan_text,audio_file, outcome, created_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (user_id, team_id, prompt_id, kintone_id, phone_no, shodan_date, shodan_text, audio_file, outcome, created_by))
+            INSERT INTO shodans (user_id, team_has_prompt_id, kintone_id, phone_no, shodan_date, shodan_text, audio_file, outcome, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (user_id, team_has_prompt_id, kintone_id, phone_no, shodan_date, shodan_text, audio_file, outcome, created_by))
         return True, f"✅ 商談が保存されました！prompt_key: {prompt_key}"
     except Exception as e:
         logger.error(f"prompt_key: {prompt_key}. ❌ エラー: {str(e)}")
@@ -40,8 +41,11 @@ def get_shodan_by_user(user_id, is_evaluated=None, is_evaluation_saved=None):
         # 0-16 Shodan 
         # 17 to 21 Prompts
         query = """
-            SELECT s.*,
-                   p.prompt_key, p.text_prompt, p.audio_prompt, p.score_items, p.notes
+            SELECT s.id as shodan_id,s.user_id,s.team_has_prompt_id,s.kintone_id,s.phone_no,s.customer_number,
+            s.shodan_date,s.shodan_text,s.audio_file,s.outcome,s.is_evaluated,s.is_evaluation_saved,
+            s.created_by,s.evaluated_time,s.evaluation_save_time,s.created_at,s.updated_at,
+            p.id as prompt_id, p.prompt_key, p.text_prompt, p.audio_prompt, p.score_items, p.notes,
+            t.id as team_id,t.team_name
         """
 
         # If evaluation_logs should be joined
@@ -53,7 +57,9 @@ def get_shodan_by_user(user_id, is_evaluated=None, is_evaluation_saved=None):
 
         query += """
             FROM shodans AS s
-            INNER JOIN prompts AS p ON p.id = s.prompt_id
+            INNER JOIN team_has_prompts AS thp ON thp.id = s.team_has_prompt_id
+            INNER JOIN prompts AS p ON p.id = thp.prompt_id
+            INNER JOIN teams AS t ON t.id = thp.team_id
         """
 
         # Add evaluation_logs join conditionally
@@ -72,10 +78,10 @@ def get_shodan_by_user(user_id, is_evaluated=None, is_evaluation_saved=None):
             query += " AND s.is_evaluation_saved = %s"
             params.append(is_evaluation_saved)
 
-        query += " ORDER BY shodan_date DESC"
+        query += " ORDER BY s.shodan_date DESC"
 
-        logger.info(query)
-        logger.info(params)
+        # logger.info(query)
+        # logger.info(params)
         rows = execute_query_with_dict_cursor(query, tuple(params), fetch=True)
         return rows
 
@@ -126,6 +132,30 @@ def update_shodan_status(shodan_id, is_evaluated=None, is_evaluation_saved=None)
     try:
         execute_modify_query(query, tuple(params))
         return True, f"✅ Shodan(ID={shodan_id}) を更新しました"
+    except Exception as e:
+        return False, f"❌ 更新エラー: {e}"
+def update_shodan_outcome(shodan_id, outcome):
+
+    updates = []
+    params = []
+
+    if outcome is not None:
+        updates.append("outcome = %s")
+        params.append(outcome)
+
+    if not updates:
+        return False, "⚠️ 更新対象がありません"
+
+    params.append(shodan_id)
+
+    query = f"""
+        UPDATE shodans
+        SET {', '.join(updates)}
+        WHERE id = %s
+    """
+    try:
+        execute_modify_query(query, tuple(params))
+        return True, f"✅ Shodan(ID={shodan_id}) outcomeを更新しました"
     except Exception as e:
         return False, f"❌ 更新エラー: {e}"
 

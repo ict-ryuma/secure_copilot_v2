@@ -53,30 +53,32 @@ def get_connection():
             use_unicode=True
         )
 
-def execute_query(query, params=None, fetch=False):
-    """Executes a given SQL query with optional parameters and fetch option."""
+def execute_query(query, params=None, fetch=False, return_last_id=False):
+    """Executes a given SQL query with optional parameters and options."""
     conn = None
     cursor = None
     result = None
 
     try:
         conn = get_connection()
-        cursor = conn.cursor(buffered=True)  # buffered=Trueを追加
+        cursor = conn.cursor(buffered=True)
         cursor.execute(query, params or ())
         
         if fetch:
             result = cursor.fetchall()
         else:
             conn.commit()
-        
-        # 残りの結果セットがあれば消費
+            if return_last_id:
+                result = cursor.lastrowid
+
+        # Consume remaining result sets if any
         try:
             while cursor.nextset():
                 if fetch:
                     cursor.fetchall()
         except:
             pass
-            
+
     except Exception as e:
         print(f"[ERROR] execute_query: {e}")
         if conn:
@@ -98,6 +100,52 @@ def execute_query(query, params=None, fetch=False):
                 pass
 
     return result
+
+# def execute_query(query, params=None, fetch=False):
+#     """Executes a given SQL query with optional parameters and fetch option."""
+#     conn = None
+#     cursor = None
+#     result = None
+
+#     try:
+#         conn = get_connection()
+#         cursor = conn.cursor(buffered=True)  # buffered=Trueを追加
+#         cursor.execute(query, params or ())
+        
+#         if fetch:
+#             result = cursor.fetchall()
+#         else:
+#             conn.commit()
+        
+#         # 残りの結果セットがあれば消費
+#         try:
+#             while cursor.nextset():
+#                 if fetch:
+#                     cursor.fetchall()
+#         except:
+#             pass
+            
+#     except Exception as e:
+#         print(f"[ERROR] execute_query: {e}")
+#         if conn:
+#             try:
+#                 conn.rollback()
+#             except:
+#                 pass
+#         raise e
+#     finally:
+#         if cursor:
+#             try:
+#                 cursor.close()
+#             except:
+#                 pass
+#         if conn:
+#             try:
+#                 conn.close()
+#             except:
+#                 pass
+
+#     return result
 
 def execute_select_query(query, params=None):
     """SELECT専用のクエリ実行関数"""

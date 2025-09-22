@@ -19,11 +19,11 @@ def mi_hyouka_list_view():
     if not (shodans and isinstance(shodans, list)):
         st.info("このユーザーの商談は見つかりませんでした。")
         return
-    # st.write(shodans)
-    for row in shodans:
+    page_datas, start_idx, _ = paginate(shodans)
+    for i, row in enumerate(page_datas, start=start_idx):
         shodan_label = f"{row['shodan_date']} | {display_outcome(row['outcome'])} | {row['prompt_key']}"
-        mi_hyouka_list(shodan_label)
-    evaluation_action(shodans)
+        mi_hyouka_list(shodan_label, row['shodan_id'],row['outcome'])
+    evaluation_action(page_datas)
 
 
 def hyouka_list_view():

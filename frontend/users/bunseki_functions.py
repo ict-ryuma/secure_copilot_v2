@@ -8,7 +8,8 @@ import requests
 import time
 from users.hyouka_view_process import replyProcess
 from backend.save_log import save_evaluation
-from backend.shodans import update_shodan_status
+from backend.shodans import update_shodan_status,update_shodan_outcome
+from logger_config import logger
 
 BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8000")
 GPT_API_URL = BASE_API_URL+"/secure-gpt-chat"
@@ -30,75 +31,62 @@ def convert_to_wav(uploaded_file):
             return tmp_out.name
         
 
-def mi_hyouka_list(shodan_label):
-    is_admin = st.session_state.get("is_admin", False)
+# import streamlit as st
+
+def mi_hyouka_list(shodan_label, shodan_id, db_outcome):
+    # Create card container
     with st.container():
-        st.markdown(
-            f"""
-            <div style="
-                padding: 12px;
-                margin: 8px 0;
-                border-radius: 12px;
-                background-color: #f9f9f9;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                height: 100%;
-                display: flex;
-                align-items: center;
-            ">
-                <h4 style="margin:0;">✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span></h4>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        col1, col2 = st.columns([4, 1])  # left wide, right narrow
 
+        with col1:
+            st.markdown(
+                f"""
+                <div style="
+                    padding: 12px;
+                    border-radius: 12px;
+                    background-color: #f9f9f9;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                ">
+                    ✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-        
-    # with st.container():
-    #     st.markdown(
-    #     f"""
-    #     <div style="
-    #         padding: 12px; 
-    #         margin: 8px 0; 
-    #         border-radius: 12px; 
-    #         background-color: #f9f9f9; 
-    #         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    #     ">
-    #         <h4 style="margin:0;">✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span></h4>
-    #     </div>
-    #     """,
-    #     unsafe_allow_html=True
-    # )
-    # with st.container():
-    #     shodan_id=1
-    #     st.markdown(
-    #         f"""
-    #         <div style="
-    #             display: flex;
-    #             align-items: center;
-    #             justify-content: space-between;
-    #             padding: 12px;
-    #             margin: 8px 0;
-    #             border-radius: 12px;
-    #             background-color: #f9f9f9;
-    #             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    #         ">
-    #             <h4 style="margin:0; flex-grow:1;">
-    #                 ✨ 商談: <span style="color:#2b6cb0;">{shodan_label}</span>
-    #             </h4>
-    #             <form action="" method="post">
-    #                 <button name="delete_{shodan_id}" type="submit" style="
-    #                     background: none;
-    #                     border: none;
-    #                     color: #e53e3e;
-    #                     font-size: 18px;
-    #                     cursor: pointer;
-    #                 ">❌</button>
-    #             </form>
-    #         </div>
-    #         """,
-    #         unsafe_allow_html=True
-    #     )
+        with col2:
+            # st.write(db_outcome)
+            try:
+                db_outcome_int = int(db_outcome)
+            except (ValueError, TypeError):
+                db_outcome_int = -1  # fallback to default
+            # Prepare options
+            options = [-1] + list(outcome_array.keys())
 
+            # Determine default index
+            if db_outcome_int in options:
+                # st.write(options)
+                default_index = options.index(db_outcome_int)
+            else:
+                default_index = 0  # default to -1 ("Please select an outcome")
+            # st.write(default_index)
+            selected_outcome = st.selectbox(
+                "結果を設定",
+                options=[-1] + list(outcome_array.keys()),
+                index=default_index,
+                help="結果を設定してください。",
+                format_func=lambda val: "結果を選択してください。" if val == -1 else display_outcome(val),
+                key=f"outcome_select_{shodan_id}",  # unique key
+                label_visibility="collapsed"  # hides label AND extra space
+            )
+
+            # st.write("Selected value:", selected_val)
+            if selected_outcome != -1 and selected_outcome != db_outcome_int:
+                success,message=update_shodan_outcome(shodan_id, selected_outcome)
+                if success:
+                    st.success(f"✅ {message}")
+                    st.experimental_rerun()
+                else:
+                    st.error(f"❌ {message}")
 
 def evaluation_action(shodans):
     user_id = st.session_state.get("user_id", "")
@@ -108,6 +96,7 @@ def evaluation_action(shodans):
         st.session_state["evaluation_started"] = False
 
     # Show button only if not started yet
+    st.write("### ▶ 一度に処理できる評価は最大10件までです。")
     if not st.session_state["evaluation_started"]:
         if st.button("🎯 評価・改善提案を受け取る", key="all_evaluation_btn"):
             st.session_state["evaluation_started"] = True
@@ -117,8 +106,33 @@ def evaluation_action(shodans):
     if st.session_state["evaluation_started"]:
         progress = st.progress(0, text="🧠 GPT評価中...")
         try:
-            for idx, row in enumerate(shodans, start=1):
-                sid = row['id']
+            # ✅ Process only 10 items at a time
+            max_items = 10
+            total = len(shodans)
+            batch = shodans[:max_items]   # take first 10 only
+            # st.write(f"batch: {len(batch)}")
+            # ====================================
+            # Collect all outcomes in an array
+            batch_outcomes = [item.get('outcome') for item in batch]
+
+            # Check if any outcome is None or not in outcome_array
+            invalid_outcomes = [o for o in batch_outcomes if o is None or int(o) not in outcome_array.keys()]
+            # st.write(f"invalid_outcomes: {invalid_outcomes}")
+
+            if invalid_outcomes:
+                message = f"⚠️ 最初の {len(batch)} 件の商談のうち {len(invalid_outcomes)} 件で、結果が未設定または無効です。"
+                st.warning(message)
+                if st.button("🔄 Reload", key="reload_button"):
+                    st.session_state["evaluation_started"] = False
+                    st.rerun()
+                return # Stop further processing
+            else:
+                message = "✅ すべての商談に有効な結果が設定されています。"
+                st.success(message)
+    # ===================================
+            for idx, row in enumerate(batch, start=1):
+                # st.write(f"{row}")
+                sid = row['shodan_id']
                 exp_label = f"{row['shodan_date']} | {display_outcome(row['outcome'])} | {row['prompt_key']}"
 
                 with st.expander(exp_label, expanded=False):
@@ -145,7 +159,6 @@ def evaluation_action(shodans):
                                 "audio_features": None,
                                 "audio_feedback": None
                             }
-
                             success, audio_features, audio_feedback = replyProcess(**replyArr)
                             if success:
                                 update_shodan_status(sid, is_evaluated=1, is_evaluation_saved=None)
@@ -170,12 +183,20 @@ def evaluation_action(shodans):
                         elapsed = int(time.time() - start_time)
                         st.success(f"✅ GPTの処理が完了しました（所要時間: {elapsed} 秒）")
 
-                progress.progress(int(idx / len(shodans) * 100), text=f"{idx}/{len(shodans)} 完了")
+                # progress.progress(int(idx / len(shodans) * 100), text=f"{idx}/{len(shodans)} 完了")
+                progress.progress(int(idx / max_items * 100), text=f"{idx}/{min(total, max_items)} 完了")
 
-            progress.progress(100, text="🎉 すべての評価が完了しました！")
+            
+            progress.progress(100, text=f"🎉 最大 {max_items} 件の評価が完了しました！")
+            if idx == len(batch):
+                if st.button("🔄 Reload", key="reload_button"):
+                    st.session_state["evaluation_started"] = False
+                    st.rerun()
 
         except Exception as e:
             st.error(f"❌ Error: {e}")
+    # else:
+    #     st.info("Reload the page if you want to start evaluation.")
     st.session_state["evaluation_started"] = False
 
 

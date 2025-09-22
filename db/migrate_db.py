@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent))
 import traceback
-from tables import (
+from models import (
     add_evaluated_by_column_to_evaluation_logs_table,
     create_users_table,
     create_teams_table,
@@ -10,7 +10,11 @@ from tables import (
     create_team_has_prompts_table,
     create_user_has_teams_table,
     create_shodans_table,
-    create_evaluation_logs_table
+    create_evaluation_logs_table,
+    create_batch_last_success_times_table,
+    create_shodan_details_table,
+    add_some_columns_to_shodans_table,
+    add_some_columns_to_users_table
 )
 
 def init_complete_system():
@@ -105,6 +109,43 @@ def init_complete_system():
         print("❌ 商談評価ログDBにevaluated_byカラムを追加エラー:")
         traceback.print_exc()
         return False
+    # 9. create_batch_last_success_times_table
+    try:
+        print("\n🔧 batch_last_success_times DBを追加中...")
+        create_batch_last_success_times_table()
+        print("✅ batch_last_success_times DBを追加完了")
+    except Exception as e:
+        print("❌batch_last_success_times DBを追加エラー:")
+        traceback.print_exc()
+        return False
+    # 10. create_shodan_details_table
+    try:
+        print("\n🔧 create_shodan_details_table DBを追加中...")
+        create_shodan_details_table()
+        print("✅ create_shodan_details_table DBを追加完了")
+    except Exception as e:
+        print("create_shodan_details_table DBを追加エラー:")
+        traceback.print_exc()
+        return False
+    # 11. add_some_columns_to_shodans_table
+    try:
+        print("\n🔧 add_some_columns_to_shodans_table DBを追加中...")
+        add_some_columns_to_shodans_table()
+        print("✅ add_some_columns_to_shodans_table DBを追加完了")
+    except Exception as e:
+        print("add_some_columns_to_shodans_table DBを追加エラー:")
+        traceback.print_exc()
+        return False
+    # 11. add_some_columns_to_users_table
+    try:
+        print("\n🔧 add_some_columns_to_users_table DBを追加中...")
+        add_some_columns_to_users_table()
+        print("✅ add_some_columns_to_users_table DBを追加完了")
+    except Exception as e:
+        print("add_some_columns_to_users_table DBを追加エラー:")
+        traceback.print_exc()
+        return False
+    
 
 
     print("=" * 50)

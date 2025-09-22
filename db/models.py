@@ -98,7 +98,7 @@ def create_shodans_table():
             kintone_id VARCHAR(10) DEFAULT NULL,
             phone_no VARCHAR(14) NOT NULL,
             shodan_date DATE DEFAULT NULL,
-            shodan_text TEXT DEFAULT NULL,
+            shodan_text MEDIUMTEXT DEFAULT NULL,
             audio_file VARCHAR(150) DEFAULT NULL,
             outcome VARCHAR(50) DEFAULT NULL,
             is_evaluated TINYINT DEFAULT 0,
@@ -148,51 +148,134 @@ def create_evaluation_logs_table():
 
 def add_evaluated_by_column_to_evaluation_logs_table():
     """Add 'evaluated_by' column to evaluation_logs table after 'comment' column"""
+    table_name="evaluation_logs"
+    check_columns_and_create(TableName=table_name,
+        ColumnName="evaluated_by",
+        ColumnType="INT",
+        Default="NULL",
+        Comment="ID of the user who evaluated the shodan",
+        After="comment"
+    )
+
+def create_batch_last_success_times_table():
+    """batch_last_success_times table"""
+    execute_query('''
+        CREATE TABLE IF NOT EXISTS batch_last_success_times (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            batch_name VARCHAR(50) NOT NULL,
+            last_success_time DATETIME DEFAULT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_batch_name (batch_name)
+        )
+    ''')
+    print("✅ batch_last_success_times テーブル初期化完了")
+
+def create_shodan_details_table():
+    """Create shodan_details table if it does not exist"""
+    query = """
+    CREATE TABLE IF NOT EXISTS `shodan_details` (
+        `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `shodan_id` VARCHAR(10) NOT NULL,
+        `agent_id` VARCHAR(70) NULL,
+        `initiation_method` VARCHAR(20) NULL,
+        `channel` VARCHAR(20) NULL,
+        `system_number` VARCHAR(20) NULL,
+        `contact_id` VARCHAR(100) NULL,
+        `input_s3_audio_uri` TEXT NULL,
+        `initiation_ts` DATETIME NULL,
+        `disconnect_ts` DATETIME NULL,
+        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """
+    execute_query(query)
+    print("✅ shodan_details table is ready.")
+
+
+
+def add_some_columns_to_shodans_table():
+    table_name="shodans"
+    check_columns_and_create(TableName=table_name,ColumnName="customer_number",ColumnType="VARCHAR(20)", Default="NULL",Comment="Customer Phone number column",After="phone_no")
+    check_columns_and_create(TableName=table_name,ColumnName="team_has_prompt_id",ColumnType="VARCHAR(10)", Default="NULL",Comment="Team has prompt ID",After="user_id")
+def add_some_columns_to_users_table():
+    table_name="users"
+    check_columns_and_create(TableName=table_name,ColumnName="first_name",ColumnType="VARCHAR(30)",Default="NULL",Comment="User first name",After="id")
+    check_columns_and_create(TableName=table_name,ColumnName="last_name",ColumnType="VARCHAR(30)",Default="NULL",Comment="User last name",After="first_name")
+    check_columns_and_create(TableName=table_name,ColumnName="email",ColumnType="VARCHAR(100)",Default="NULL",Comment="User Email address",After="username")
+    check_columns_and_create(TableName=table_name,ColumnName="phone_no",ColumnType="VARCHAR(20)",Default="NULL",Comment="User Phone number",After="password_hash")
+
+
+def check_columns_and_create(
+    TableName=None,
+    ColumnName=None,
+    ColumnType="VARCHAR(50)",
+    Default=None,
+    Comment=None,
+    After=None
+):
+    """Add column to table after column if not exists"""
+
+    # ✅ Basic validation
+    if not TableName or not ColumnName:
+        print("❌ TableName and ColumnName are required.")
+        return
+
+    # ✅ Quote string values for SQL safely
+    default_clause = f"DEFAULT {Default}" if Default is not None else ""
+    comment_clause = f"COMMENT '{Comment}'" if Comment else ""
+    after_clause = f"AFTER `{After}`" if After else ""
+
     # 1️⃣ Check if the column already exists
-    query_check = """
+    query_check = f"""
         SELECT COUNT(*)
         FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE table_name='evaluation_logs'
-          AND column_name='evaluated_by'
-          AND table_schema=DATABASE();
+        WHERE table_name = '{TableName}'
+          AND column_name = '{ColumnName}'
+          AND table_schema = DATABASE();
     """
     exists = execute_query(query_check, fetch=True)
 
     if exists and exists[0][0] == 0:
-        # 2️⃣ Add column after 'comment' with English comment
-        query_add = """
-            ALTER TABLE evaluation_logs
-            ADD COLUMN evaluated_by INT DEFAULT NULL
-            COMMENT 'ID of the user who evaluated the shodan'
-            AFTER comment;
+        # 2️⃣ Add column with options
+        query_add = f"""
+            ALTER TABLE `{TableName}`
+            ADD COLUMN `{ColumnName}` {ColumnType} {default_clause} {comment_clause} {after_clause};
         """
         execute_query(query_add)
-        print("✅ 'evaluated_by' column added to evaluation_logs table after 'comment'")
+        print(f"✅ {ColumnName} column added to {TableName} table {after_clause or ''}")
     else:
-        print("ℹ 'evaluated_by' column already exists")
+        print(f"ℹ {ColumnName} column already exists in {TableName}")
+
+
+def check_column_and_delete(TableName=None, ColumnName=None):
+    """Delete column from table if it exists"""
+
+    # ✅ Basic validation
+    if not TableName or not ColumnName:
+        print("❌ TableName and ColumnName are required.")
+        return
+
+    # 1️⃣ Check if the column exists
+    query_check = f"""
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE table_name = '{TableName}'
+          AND column_name = '{ColumnName}'
+          AND table_schema = DATABASE();
+    """
+    exists = execute_query(query_check, fetch=True)
+
+    if exists and exists[0][0] > 0:
+        # 2️⃣ Drop the column
+        query_drop = f"""
+            ALTER TABLE `{TableName}`
+            DROP COLUMN `{ColumnName}`;
+        """
+        execute_query(query_drop)
+        print(f"🗑 Column `{ColumnName}` deleted from `{TableName}` table.")
+    else:
+        print(f"ℹ Column `{ColumnName}` does not exist in `{TableName}`.")
 
 
 
-# ✅ 商談評価ログ管理機能（拡張版）
-# def create_conversation_logs_table():
-#     """商談評価ログテーブルを作成・拡張（なければ）"""
-#     # ✅ 基本テーブル作成
-#     execute_query('''
-#         CREATE TABLE IF NOT EXISTS conversation_logs (
-#             id INT PRIMARY KEY AUTO_INCREMENT,
-#             date VARCHAR(20) NOT NULL,
-#             time VARCHAR(20),
-#             customer_name VARCHAR(100),
-#             conversation_text TEXT,
-#             gpt_feedback TEXT,
-#             score DECIMAL(3,1),
-#             username VARCHAR(50) NOT NULL,
-#             status VARCHAR(20) DEFAULT '未設定',
-#             followup_date VARCHAR(20),
-#             tags TEXT,
-#             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-#             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-#         )
-#     ''')
-    
-#     print("✅ conversation_logs テーブル初期化完了")
