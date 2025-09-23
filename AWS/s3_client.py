@@ -1,17 +1,21 @@
+import sys, os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/..")
 from logger_config import logger
 from datetime import datetime, timezone, timedelta
 import zoneinfo
-import os
 import json
 from AWS.batch_execution import get_last_success_time
 from AWS.db_execution import initialize_s3_client,create_user,get_prompts_for_team,transcripts_to_passage,file_path_to_date,download_audio_from_s3,insert_shodans_for_team,insert_shodan_details_for_team,upsert_batch_last_success
+from dotenv import load_dotenv
+
+load_dotenv()
 
 batch_name="s3_client"
 jst = zoneinfo.ZoneInfo("Asia/Tokyo")
 
 
 
-def download_file_from_s3(last_success_time=None):
+def download_file_from_s3():
     """
     Downloads files from an S3 bucket with a given prefix.
 
@@ -39,15 +43,20 @@ def download_file_from_s3(last_success_time=None):
 
         s3 = initialize_s3_client(type="s3")
         bucket_name = os.environ.get("AWS_S3_BUCKET_NAME", "")
-        logger.info(f"bucket_name: {bucket_name}")
+        # logger.info(f"bucket_name: {bucket_name}")
         # return True
         # prefix = "connect/norel-idom-caas-technology/CallRecordings/2025/09/09"
         # Build prefix dynamically
         # audio_file_prefix = f"connect/norel-idom-caas-technology/CallRecordings/{year}/{month}/{day}"
         # json_file_prefix = f"Analysis/Voice/{year}/{month}/{day}"
+        batch_last_success_array={
+            "batch_name":batch_name,
+            "last_success_time":now
+        }
         for prefix in json_file_prefixes:
             # logger.info(prefix)
             get_s3_sjon_files(s3,bucket_name,prefix,last_success_time_local,now_local,now)
+        upsert_batch_last_success(batch_last_success_array)
 
         # return downloaded_files
 
@@ -152,12 +161,9 @@ def get_s3_sjon_files(s3,bucket_name,prefix,last_success_time_local,now_local,no
                     "initiation_ts":initiation_ts,
                     "disconnect_ts":disconnect_ts,
                 }
-                batch_last_success_array={
-                    "batch_name":batch_name,
-                    "last_success_time":now
-                }
+                
                 # logger.info(f"user_array: {user_array} shodan_array: {shodan_array} shodan_details_array: {shodan_details_array} batch_last_success_array: {batch_last_success_array}")
-                success=insert_to_db(user_array,shodan_array,shodan_details_array,batch_last_success_array)
+                success=insert_to_db(user_array,shodan_array,shodan_details_array)
                 if success:
                     try:
                         if os.path.exists(file_path):
@@ -166,7 +172,7 @@ def get_s3_sjon_files(s3,bucket_name,prefix,last_success_time_local,now_local,no
                         logger.error(f"❌ Error deleting {file_path}: {e}")
 
 
-def insert_to_db(user_array,shodan_array,shodan_details_array,batch_last_success_array):
+def insert_to_db(user_array,shodan_array,shodan_details_array):
     try:
         user_id,team_id=create_user(user_array)
         # logger.info(f"user_id: {user_id}")
@@ -179,7 +185,6 @@ def insert_to_db(user_array,shodan_array,shodan_details_array,batch_last_success
             last_shodan_id=insert_shodans_for_team(shodan_array,team_has_prompt_id)
             shodan_details_array['shodan_id']=last_shodan_id
             insert_shodan_details_for_team(shodan_details_array)
-        upsert_batch_last_success(batch_last_success_array)
         return True
     except Exception as e:
         logger.error(f"Error downloading file: {e}")

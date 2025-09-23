@@ -8,7 +8,9 @@ import boto3
 from urllib.parse import urlparse
 import os
 from pydub import AudioSegment
+from dotenv import load_dotenv
 
+load_dotenv()
 
 jst = zoneinfo.ZoneInfo("Asia/Tokyo")
 def initialize_s3_client(type="s3"):

@@ -147,7 +147,7 @@ def evaluation_action(shodans):
                             res.raise_for_status()
 
                             reply = res.json().get("reply", "").strip()
-                            member_name = st.session_state.get("username", "")
+                            member_name = row.get("username", "Unknown User")
 
                             replyArr = {
                                 "reply": reply,

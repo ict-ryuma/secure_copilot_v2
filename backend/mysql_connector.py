@@ -3,26 +3,30 @@
 import os
 import mysql.connector
 from mysql.connector import pooling
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # 接続プール設定
 connection_pool = None
-appEnv=os.environ.get("APP_ENV", "local")
-if appEnv == "local":
-    dbHost="host.docker.internal"
-else:
-    dbHost=os.environ.get("DB_HOST", "mysql")
+dbHost = os.environ.get("MYSQL_HOST", "mysql")
+dbUser = os.environ.get("MYSQL_USER", "root")
+dbPassword = os.environ.get("MYSQL_PASSWORD", "")
+dbName = os.environ.get("MYSQL_DATABASE", "")
+dbPort = int(os.environ.get("MYSQL_PORT", 3306))
 
+# dbHost="host.docker.internal"
 def init_connection_pool():
     """MySQL接続プールを初期化"""
     global connection_pool
     if connection_pool is None:
         config = {
             'host': dbHost,
-            'user': os.environ.get("DB_USER", "root"),
-            'password': os.environ.get("DB_PASSWORD", ""),
-            'database': os.environ.get("DB_NAME", ""),
-            'port': int(os.environ.get("DB_PORT", 3306)),
+            'user': dbUser,
+            'password': dbPassword,
+            'database': dbName,
+            'port': dbPort,
             'pool_name': 'secure_copilot_pool',
             'pool_size': 5,
             'pool_reset_session': True,

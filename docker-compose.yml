@@ -13,6 +13,7 @@ services:
       - .env
     volumes:
       - .:/app
+      - ./.env:/app/.env
     environment:
       DB_HOST: ${MYSQL_HOST}
       DB_PORT: ${MYSQL_PORT}
@@ -20,6 +21,14 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD}
       DB_NAME: ${MYSQL_DATABASE}
       APP_ENV: ${APP_ENV}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION_NAME: ${AWS_REGION_NAME}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME}
+      LOGIN_SESSION_DAYS: ${LOGIN_SESSION_DAYS}
+
+    networks:
+      - copilot_network
     depends_on:
       - mysql
     
@@ -34,7 +43,14 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "${MYSQL_PORT}:3306"
+      # - "${MYSQL_PORT}:3306"
+      - "3306:3306"
+    networks:
+      - copilot_network
     volumes:
       - './docker/mysql/data:/var/lib/mysql'
       # - './docker/mysql/DB:/docker-entrypoint-initdb.d'
+
+networks:
+  copilot_network:
+    driver: bridge
