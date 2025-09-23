@@ -14,7 +14,8 @@ from models import (
     create_batch_last_success_times_table,
     create_shodan_details_table,
     add_some_columns_to_shodans_table,
-    add_some_columns_to_users_table
+    add_some_columns_to_users_table,
+    delete_some_columns_to_shodans_table
 )
 
 def init_complete_system():
@@ -136,7 +137,7 @@ def init_complete_system():
         print("add_some_columns_to_shodans_table DBを追加エラー:")
         traceback.print_exc()
         return False
-    # 11. add_some_columns_to_users_table
+    # 12. add_some_columns_to_users_table
     try:
         print("\n🔧 add_some_columns_to_users_table DBを追加中...")
         add_some_columns_to_users_table()
@@ -145,8 +146,15 @@ def init_complete_system():
         print("add_some_columns_to_users_table DBを追加エラー:")
         traceback.print_exc()
         return False
-    
-
+    # 13. delete_some_columns_to_shodans_table
+    try:
+        print("\n🔧 delete_some_columns_to_shodans_table DBを追加中...")
+        delete_some_columns_to_shodans_table()
+        print("✅ delete_some_columns_to_shodans_table DBを追加完了")
+    except Exception as e:
+        print("delete_some_columns_to_shodans_table DBを追加エラー:")
+        traceback.print_exc()
+        return False
 
     print("=" * 50)
     print("\n🎉 システム完全初期化完了 🎉")

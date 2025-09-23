@@ -204,7 +204,10 @@ def add_some_columns_to_users_table():
     check_columns_and_create(TableName=table_name,ColumnName="last_name",ColumnType="VARCHAR(30)",Default="NULL",Comment="User last name",After="first_name")
     check_columns_and_create(TableName=table_name,ColumnName="email",ColumnType="VARCHAR(100)",Default="NULL",Comment="User Email address",After="username")
     check_columns_and_create(TableName=table_name,ColumnName="phone_no",ColumnType="VARCHAR(20)",Default="NULL",Comment="User Phone number",After="password_hash")
-
+def delete_some_columns_to_shodans_table():
+    table_name="shodans"
+    check_column_and_delete(TableName=table_name,ColumnName="team_id")
+    check_column_and_delete(TableName=table_name,ColumnName="prompt_id")
 
 def check_columns_and_create(
     TableName=None,
