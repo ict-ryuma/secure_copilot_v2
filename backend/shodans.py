@@ -6,11 +6,10 @@ def save_shodan(shodan_array):
     """評価プロンプトをDBに保存"""
     logger.info(f"🚀 save_shodan 開始: {shodan_array}")
     user_id=shodan_array['user_id']
-    # team_id=shodan_array['team_id']
-    # prompt_id=shodan_array['prompt_id']
     team_has_prompt_id=shodan_array['team_has_prompt_id']
     kintone_id=shodan_array['kintone_id']
     phone_no=shodan_array['phone_no']
+    customer_number=shodan_array['customer_number']
     shodan_date=shodan_array['shodan_date']
     shodan_text=shodan_array['shodan_text']
     audio_file=shodan_array['audio_file']
@@ -18,24 +17,34 @@ def save_shodan(shodan_array):
     prompt_key=shodan_array['prompt_key']
     created_by=shodan_array['created_by']
     rows = execute_query('''
-        SELECT id FROM shodans WHERE user_id = %s AND team_has_prompt_id = %s AND kintone_id = %s AND phone_no = %s AND shodan_date = %s AND shodan_text = %s AND outcome = %s
-    ''', (user_id, team_has_prompt_id, kintone_id, phone_no, shodan_date, shodan_text, outcome), fetch=True)
+        SELECT id FROM shodans WHERE user_id = %s AND team_has_prompt_id = %s AND kintone_id = %s AND customer_number = %s AND shodan_date = %s AND shodan_text = %s AND outcome = %s
+    ''', (user_id, team_has_prompt_id, kintone_id, customer_number, shodan_date, shodan_text, outcome), fetch=True)
     if rows and len(rows) > 0:
         return False, f"❌ すでに同じ評価が存在します。prompt_key: {prompt_key}"
     
     try:
         execute_query('''
-            INSERT INTO shodans (user_id, team_has_prompt_id, kintone_id, phone_no, shodan_date, shodan_text, audio_file, outcome, created_by)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (user_id, team_has_prompt_id, kintone_id, phone_no, shodan_date, shodan_text, audio_file, outcome, created_by))
+            INSERT INTO shodans (user_id, team_has_prompt_id, kintone_id, phone_no, customer_number, shodan_date, shodan_text, audio_file, outcome, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (user_id, team_has_prompt_id, kintone_id, phone_no, customer_number, shodan_date, shodan_text, audio_file, outcome, created_by))
         return True, f"✅ 商談が保存されました！prompt_key: {prompt_key}"
     except Exception as e:
         logger.error(f"prompt_key: {prompt_key}. ❌ エラー: {str(e)}")
         return False, f"❌ prompt_key: {prompt_key} システムエラー: {str(e)}"
     
-
-def get_shodan_by_user(user_id, is_evaluated=None, is_evaluation_saved=None):
+def get_shodan_by_user(
+        user_id=None, 
+        kintone_id=None, 
+        shodan_date_start=None,
+        shodan_date_end=None,
+        customer_number=None,
+        outcome=None,
+        is_evaluated=None,
+        is_evaluation_saved=None
+        ):
     """Retrieve a list of deals (shodans) for a specific user, optionally filtered by evaluation status and join evaluation logs."""
+
+    # logger.info(f"Retrieve Shodans - User ID: {user_id}, Kintone ID: {kintone_id}, Date Range: {shodan_date_start} to {shodan_date_end}, Customer Number: {customer_number}, Outcome: {outcome}, Is Evaluated: {is_evaluated}, Is Evaluation Saved: {is_evaluation_saved}")
     try:
         # Base query with prompts join
         # 0-16 Shodan 
@@ -77,11 +86,33 @@ def get_shodan_by_user(user_id, is_evaluated=None, is_evaluation_saved=None):
         if is_evaluation_saved is not None:
             query += " AND s.is_evaluation_saved = %s"
             params.append(is_evaluation_saved)
+        # Filters     
+        if shodan_date_start is not None and shodan_date_end is not None:
+            query += " AND s.shodan_date BETWEEN %s AND %s"
+            params.extend([shodan_date_start, shodan_date_end])
+        elif shodan_date_start is not None:
+            query += " AND s.shodan_date >= %s"
+            params.append(shodan_date_start)
+        elif shodan_date_end is not None:
+            query += " AND s.shodan_date <= %s"
+            params.append(shodan_date_end)
+
+        if kintone_id is not None:
+            query += " AND s.kintone_id = %s"
+            params.append(kintone_id)
+
+        if customer_number is not None:
+            query += " AND s.customer_number LIKE %s"
+            params.append(f"%{customer_number}%")
+
+        if outcome is not None:
+            query += " AND s.outcome = %s"
+            params.append(outcome)
 
         query += " ORDER BY s.shodan_date DESC"
 
-        # logger.info(query)
-        # logger.info(params)
+        logger.info(query)
+        logger.info(params)
         rows = execute_query_with_dict_cursor(query, tuple(params), fetch=True)
         return rows
 

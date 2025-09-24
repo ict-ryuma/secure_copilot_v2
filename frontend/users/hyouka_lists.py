@@ -6,6 +6,8 @@ from backend.shodans import get_shodan_by_user
 from outcomes import outcome_array,display_outcome
 from users.bunseki_functions import mi_hyouka_list,evaluation_action
 from frontend.pagination import paginate
+from shodan_search import shodan_search_filters
+from logger_config import logger
 
 BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8000")
 GPT_API_URL = f"{BASE_API_URL}/secure-gpt-chat"
@@ -13,8 +15,22 @@ GPT_API_URL = f"{BASE_API_URL}/secure-gpt-chat"
 
 def mi_hyouka_list_view():
     st.header("📋 商談一覧")
+    _, status, kintone_id, _, shodan_date_start, shodan_date_end, _, _, customer_number = shodan_search_filters(Type="user")
     user_id = st.session_state.get("user_id", "")
-    shodans = get_shodan_by_user(user_id=user_id, is_evaluated=None, is_evaluation_saved=0)
+    # status_filter = None if status == -1 else status
+    search_array = {
+        "user_id":user_id,
+        "kintone_id":kintone_id,
+        "shodan_date_start":shodan_date_start,
+        "shodan_date_end":shodan_date_end,
+        "customer_number":customer_number,
+        "outcome":status,
+        "is_evaluated":None, 
+        "is_evaluation_saved":0
+    }
+    
+
+    shodans = get_shodan_by_user(**search_array)
 
     if not (shodans and isinstance(shodans, list)):
         st.info("このユーザーの商談は見つかりませんでした。")
@@ -30,10 +46,21 @@ def hyouka_list_view():
     """評価済みの商談一覧表示（ページネーション付き、件数選択可能）"""
 
     st.header("📋 評価済み商談一覧")
+    _, status, kintone_id, _, shodan_date_start, shodan_date_end, _, _, customer_number = shodan_search_filters(Type="user")
     user_id = st.session_state.get("user_id", "")
     member_name = st.session_state.get("username", "")
 
-    shodans = get_shodan_by_user(user_id=user_id, is_evaluated=None, is_evaluation_saved=1)
+    search_array = {
+        "user_id":user_id,
+        "kintone_id":kintone_id,
+        "shodan_date_start":shodan_date_start,
+        "shodan_date_end":shodan_date_end,
+        "customer_number":customer_number,
+        "outcome":status,
+        "is_evaluated":None, 
+        "is_evaluation_saved":1
+    }
+    shodans = get_shodan_by_user(**search_array)
 
     if not (shodans and isinstance(shodans, list) and len(shodans) > 0):
         st.info("このユーザーには評価済みの商談が見つかりませんでした。")

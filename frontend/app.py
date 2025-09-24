@@ -12,8 +12,7 @@ from users.hyouka_lists import mi_hyouka_list_view,hyouka_list_view
 from admins.login_check import login_check,login
 from admins.logout import logout,logout_view
 from users.menu import menu
-from users.load_prompts import load_team_prompts
-from users.hyouka_form import hyouka_form
+from users.shodan_form import shodan_form
 from team_validation import get_valid_team_for_user
 from auto_refresh import auto_refresh_view
 
@@ -50,7 +49,7 @@ if st.session_state["authentication_status"] and cookie_user_data:
         st.markdown("---")
         st.write(menu)
     if menu == "商談を作成":
-        hyouka_form()
+        shodan_form()
     if menu == "未評価の商談を選択してください":
         mi_hyouka_list_view()
     if menu == "評価の商談を選択してください":

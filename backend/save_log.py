@@ -185,6 +185,7 @@ def get_evaluations_admin(
     shodan_date_end=None,
     kintone_id=None,
     phone_no=None,
+    customer_number=None,
     outcome=None,
     evaluation_status=1,
     team_id=None,
@@ -226,8 +227,11 @@ def get_evaluations_admin(
             params.append(kintone_id)
 
         if phone_no or phone_no is not None:
-            query += " AND s.phone_no = %s"
-            params.append(phone_no)
+            query += " AND s.phone_no LIKE %s"
+            params.append(f"%{phone_no}%")
+        if customer_number or customer_number is not None:
+            query += " AND s.customer_number LIKE %s"
+            params.append(f"%{customer_number}%")
 
         if outcome is not None:
             query += " AND s.outcome = %s"
@@ -243,7 +247,7 @@ def get_evaluations_admin(
     # ---------------------------
     else:
         query = """
-            SELECT el.*,s.team_has_prompt_id,s.shodan_date, s.kintone_id, s.phone_no,s.shodan_text, s.outcome, s.user_id,u.name,u.username,p.prompt_key,p.text_prompt,p.audio_prompt,p.score_items,p.notes
+            SELECT el.*,s.team_has_prompt_id,s.shodan_date, s.kintone_id, s.phone_no,s.customer_number,s.shodan_text, s.outcome, s.user_id,u.name,u.username,p.prompt_key,p.text_prompt,p.audio_prompt,p.score_items,p.notes
             FROM evaluation_logs el
             JOIN shodans s ON el.shodan_id = s.id
             JOIN users u ON s.user_id = u.id
@@ -271,8 +275,11 @@ def get_evaluations_admin(
             params.append(kintone_id)
 
         if phone_no or phone_no is not None:
-            query += " AND s.phone_no = %s"
-            params.append(phone_no)
+            query += " AND s.phone_no LIKE %s"
+            params.append(f"%{phone_no}%")
+        if customer_number or customer_number is not None:
+            query += " AND s.customer_number LIKE %s"
+            params.append(f"%{customer_number}%")
 
         if outcome is not None:
             query += " AND s.outcome = %s"
@@ -282,8 +289,8 @@ def get_evaluations_admin(
             params.append(team_id)
 
         query += " ORDER BY el.created_at DESC"
-    logger.info(f"Query: {query}")
-    logger.info(f"Params: {params}")
+    # logger.info(f"Query: {query}")
+    # logger.info(f"Params: {params}")
 
     rows = execute_query_with_dict_cursor(query, tuple(params), fetch=True)
     return rows
