@@ -437,7 +437,7 @@ def get_current_user(username: str) -> Dict[str, any]:
     except Exception as e:
         return {"error": f"ユーザー情報取得エラー: {str(e)}"}
 
-def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, any]]:
+def get_all_users(user_id: int = None, team_id: int = None) -> Union[List[Dict[str, any]], Dict[str, any]]:
     """
     Get all users or a specific user by ID.
     Returns a list of user dicts if no user_id is given,
@@ -445,6 +445,7 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
     """
     try:
         if user_id:
+            params = [user_id]
             query = '''
                 SELECT u.id as user_id,u.name, u.first_name, u.last_name,u.email,u.phone_no,u.username,uht.id as user_has_team_id, t.id as team_id, t.team_name, u.is_admin
                 FROM users as u
@@ -452,19 +453,26 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
                 INNER JOIN teams as t ON t.id=uht.team_id
                 WHERE u.id = %s
             '''
-            rows = execute_query_with_dict_cursor(query, (user_id,), fetch=True)
+            if team_id is not None:
+                query += " AND uht.team_id = %s"
+                params.append(team_id)
+            rows = execute_query_with_dict_cursor(query, params, fetch=True)
             if not rows:
                 return {"error": f"User with ID {user_id} not found."}
             user_info = rows[0]
             return user_info
         else:
+            params = []
             query = '''
                 SELECT u.id as user_id, u.name,u.first_name, u.last_name,u.email,u.phone_no,u.username,uht.id as user_has_team_id, t.id as team_id, t.team_name, u.is_admin
                 FROM users as u
                 INNER JOIN user_has_teams as uht ON uht.user_id=u.id
                 INNER JOIN teams as t ON t.id=uht.team_id
             '''
-            rows = execute_query_with_dict_cursor(query, fetch=True)
+            if team_id is not None:
+                query += " AND uht.team_id = %s"
+                params.append(team_id)
+            rows = execute_query_with_dict_cursor(query, params, fetch=True)
             users = []
             for row in rows:
                 users.append(row)

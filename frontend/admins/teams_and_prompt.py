@@ -32,7 +32,16 @@ def create_team_prompt(team_options,prompt_options,adm_user_id):
 
 def view_team_prompt(team_options,prompt_options,adm_user_id):
     st.markdown("### 📋 現在のチームごとのプロンプトキー一覧")
-    team_prompts = get_team_has_prompts()
+    with st.expander("🔍 検索・フィルター設定", expanded=True):
+        team_options_with_placeholder = [(-1, "全て")] + team_options
+        search_team = st.selectbox(
+            "チームを選択",
+            options=team_options_with_placeholder,
+            format_func=lambda team: team[1],  # Display team_name
+            help="登録済みのアクティブチームのみ選択可能です（プレースホルダーチーム除外）"
+        )
+        team_id_filter = None if search_team[0] == -1 else search_team[0]
+    team_prompts = get_team_has_prompts(team_id=team_id_filter)
     # st.write(team_prompts)
     if team_prompts:
         page_datas, start_idx, _ = paginate(team_prompts)

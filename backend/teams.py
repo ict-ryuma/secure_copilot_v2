@@ -144,7 +144,7 @@ def create_team_has_prompts(team_id, prompt_id, is_active=1, created_by=None):
     
 
 
-def get_team_has_prompts(only_active=None):
+def get_team_has_prompts(only_active=None, team_id=None):
     """
     Get team_has_prompts from the database.
     
@@ -172,6 +172,10 @@ def get_team_has_prompts(only_active=None):
             WHERE thp.is_active=%s
         '''
         params = (only_active,)
+
+    if team_id is not None:
+        query += " AND thp.team_id=%s"
+        params += (team_id,)
 
     team_prompts = execute_query(query, params, fetch=True)
     return team_prompts

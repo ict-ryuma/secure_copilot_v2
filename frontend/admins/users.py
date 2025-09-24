@@ -97,8 +97,17 @@ def user_lists():
         del st.session_state["update_success"]
     try:
         adm_user_id = st.session_state["user_id"]
-        users= get_all_users()
         team_options = get_teams()
+        with st.expander("🔍 検索・フィルター設定", expanded=True):
+            team_options_with_placeholder = [(-1, "全て")] + team_options
+            search_team = st.selectbox(
+                "チームを選択",
+                options=team_options_with_placeholder,
+                format_func=lambda team: team[1],  # Display team_name
+                help="登録済みのアクティブチームのみ選択可能です（プレースホルダーチーム除外）"
+            )
+            team_id_filter = None if search_team[0] == -1 else search_team[0]
+        users= get_all_users(team_id=team_id_filter)
         if users:
             page_datas, start_idx, _ = paginate(users)
             st.markdown("### 👥 ユーザー一覧")
