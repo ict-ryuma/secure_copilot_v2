@@ -2,7 +2,7 @@
 import hashlib
 from typing import List, Dict, Tuple, Any, Union
 import os
-from backend.mysql_connector import execute_query,execute_modify_query
+from backend.mysql_connector import execute_query,execute_modify_query,execute_query_with_dict_cursor
 from logger_config import logger
 from backend.teams import get_teams,get_user_team
 
@@ -155,11 +155,24 @@ def validate_team_comprehensive(team_name: str) -> Dict[str, any]:
             "suggestions": ["システム管理者にお問い合わせください"]
         }
 
-def register_user(name,username: str, password: str, team_id: str, is_admin: bool = False,adm_user_id:int=None) -> Tuple[bool, str]:
+# def register_user(name,username: str, password: str, team_id: str, is_admin: bool = False,adm_user_id:int=None) -> Tuple[bool, str]:
+def register_user(
+        first_name: str,
+        last_name: str,
+        name: str,
+        username: str,
+        password: str,
+        email: str,
+        phone_no: str,
+        team_id: str,
+        is_admin: bool = False,
+        adm_user_id: int = None) -> Tuple[bool, str]:
     """
     ユーザー登録（包括的チーム検証付き）
     """
     # ✅ 1. 入力検証
+    if not name or not name.strip():
+        return False, "名前が空です"
     if not username or not username.strip():
         return False, "ユーザー名が空です"
     if not password or len(password) < 4:
@@ -178,9 +191,9 @@ def register_user(name,username: str, password: str, team_id: str, is_admin: boo
         # ✅ 4. ユーザー登録実行
         hashed_password = hash_password(password)
         inserted=execute_query('''
-            INSERT INTO users (name,username, password_hash, is_admin,created_by)
-            VALUES (%s, %s, %s, %s,%s)
-        ''', (name,username, hashed_password, is_admin,adm_user_id))
+            INSERT INTO users (first_name,last_name, name, username, password_hash, email, phone_no, is_admin, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (first_name, last_name, name, username, hashed_password, email, phone_no, is_admin, adm_user_id))
 
         # if inserted:
         userInfos = execute_query("SELECT id FROM users WHERE username = %s", (username,), fetch=True)
@@ -311,7 +324,7 @@ def update_user_has_team(user_has_team_id, user_id, team_id, created_by, usernam
     except Exception as e:
         return False, f"チーム更新エラー: {str(e)}"
 
-def update_user(id, name=None, username=None, password=None, is_admin=None, created_by=None,user_has_team_id=None,team_id=None):
+def update_user(id, first_name=None, last_name=None,name=None, username=None, password=None,email=None,phone_no=None, is_admin=None, created_by=None,user_has_team_id=None,team_id=None):
     """
     Update a users in the database.
     
@@ -345,6 +358,14 @@ def update_user(id, name=None, username=None, password=None, is_admin=None, crea
         updates.append("created_by=%s")
         params.append(created_by)
 
+    updates.append("first_name=%s")
+    params.append(first_name)
+    updates.append("last_name=%s")
+    params.append(last_name)
+    updates.append("email=%s")
+    params.append(email)
+    updates.append("phone_no=%s")
+    params.append(phone_no)
     if not updates:
         # Nothing to update
         return 0
@@ -425,25 +446,25 @@ def get_all_users(user_id: int = None) -> Union[List[Dict[str, any]], Dict[str, 
     try:
         if user_id:
             query = '''
-                SELECT u.id as user_id, u.name, u.username,uht.id as user_has_team_id, t.id as team_id, t.team_name, u.is_admin
+                SELECT u.id as user_id,u.name, u.first_name, u.last_name,u.email,u.phone_no,u.username,uht.id as user_has_team_id, t.id as team_id, t.team_name, u.is_admin
                 FROM users as u
                 INNER JOIN user_has_teams as uht ON uht.user_id=u.id
                 INNER JOIN teams as t ON t.id=uht.team_id
                 WHERE u.id = %s
             '''
-            rows = execute_query(query, (user_id,), fetch=True)
+            rows = execute_query_with_dict_cursor(query, (user_id,), fetch=True)
             if not rows:
                 return {"error": f"User with ID {user_id} not found."}
             user_info = rows[0]
             return user_info
         else:
             query = '''
-                SELECT u.id as user_id, u.name, u.username,uht.id as user_has_team_id, t.id as team_id, t.team_name, u.is_admin
+                SELECT u.id as user_id, u.name,u.first_name, u.last_name,u.email,u.phone_no,u.username,uht.id as user_has_team_id, t.id as team_id, t.team_name, u.is_admin
                 FROM users as u
                 INNER JOIN user_has_teams as uht ON uht.user_id=u.id
                 INNER JOIN teams as t ON t.id=uht.team_id
             '''
-            rows = execute_query(query, fetch=True)
+            rows = execute_query_with_dict_cursor(query, fetch=True)
             users = []
             for row in rows:
                 users.append(row)
@@ -499,11 +520,11 @@ def diagnose_team_integrity() -> Dict[str, any]:
     except Exception as e:
         return {"error": f"診断エラー: {str(e)}"}
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # テスト実行
-    print("🧪 auth.py 統合テスト")
-    print(f"有効チーム: {get_all_teams_safe()}")
+    # print("🧪 auth.py 統合テスト")
+    # print(f"有効チーム: {get_all_teams_safe()}")
     
-    # 診断実行
-    diagnosis = diagnose_team_integrity()
-    print(f"診断結果: {diagnosis}")
+    # # 診断実行
+    # diagnosis = diagnose_team_integrity()
+    # print(f"診断結果: {diagnosis}")

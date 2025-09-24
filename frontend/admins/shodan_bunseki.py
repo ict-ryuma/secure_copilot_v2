@@ -23,7 +23,7 @@ def shodan_bunseki():
         team_options = get_teams(only_active=1)
         team_options_with_placeholder = [(-1, "全て")] + team_options
         # st.write(team_options)
-        user_options = [(user[0], user[2]) for user in users]
+        user_options = [(user['user_id'], user['username']) for user in users]
         # Add "全員" option with id None
         user_options = [(None, "全員")] + user_options
         

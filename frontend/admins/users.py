@@ -5,9 +5,17 @@ from logger_config import logger
 from pagination import paginate
 def register():
     st.subheader("👤 新規ユーザー登録")
-    name = st.text_input("名")
-    username = st.text_input("ユーザー名")
-    password = st.text_input("パスワード", type="password")
+    col1, col2, col3 = st.columns(3)
+    first_name = col1.text_input("名前",key="first_name")
+    last_name = col2.text_input("苗字",key="last_name")
+    name = col3.text_input("氏名", value=f"{first_name} {last_name}".strip(),key="name")
+
+    username = col1.text_input("ユーザー名",key="username")
+
+    password = col2.text_input("パスワード", type="password",key="password")
+
+    email = col3.text_input("メールアドレス",key="email")
+    phone_no = col1.text_input("電話番号",key="phone_no")
     adm_user_id = st.session_state["user_id"]
     
     try:
@@ -29,18 +37,32 @@ def register():
             st.stop()
         
         # ✅ チーム選択（プレースホルダー完全排除）
-        selected_team = st.selectbox(
+        # selected_team = col1.text_input("パスワード", type="password")
+        selected_team = col2.selectbox(
             "チームを選択",
             options=team_options,
             format_func=lambda team: team[1],  # Display team_name
-            help="登録済みのアクティブチームのみ選択可能です（プレースホルダーチーム除外）"
+            help="登録済みのアクティブチームのみ選択可能です（プレースホルダーチーム除外）",
+            key="selected_team"
         )
         is_admin_flag = st.checkbox("管理者として登録")
 
         if st.button("登録実行"):
             if username.strip() and password.strip():
                 # ✅ 修正: register_user の戻り値を適切に処理
-                success, message = register_user(name,username, password, selected_team[0], is_admin_flag,adm_user_id)
+                user_reg_array = {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "name": name,
+                    "username": username,
+                    "password": password,
+                    "email": email,
+                    "phone_no": phone_no,
+                    "team_id": selected_team[0],
+                    "is_admin": is_admin_flag,
+                    "adm_user_id": adm_user_id
+                }
+                success, message = register_user(**user_reg_array)
                 if success:
                     st.success(f"✅ {message}")
                 else:
@@ -81,7 +103,19 @@ def user_lists():
             page_datas, start_idx, _ = paginate(users)
             st.markdown("### 👥 ユーザー一覧")
             for i, user in enumerate(page_datas):
-                user_id, name, username,user_has_team_id, team_id, team_name, is_admin=user
+                # user_id, name, username,user_has_team_id, team_id, team_name, is_admin,first_name, last_name, email, phone_no=user
+                user_id=user.get('user_id')
+                name=user.get('name')
+                first_name=user.get('first_name')
+                last_name=user.get('last_name')
+                email=user.get('email')
+                phone_no=user.get('phone_no')
+                username=user.get('username')
+                user_has_team_id=user.get('user_has_team_id')  
+                team_id=user.get('team_id')
+                team_name=user.get('team_name')
+                is_admin=user.get('is_admin')
+
                 expanded = st.session_state.get("open_user_expander") == user_id
                 with st.expander(f"👤 {username} (チーム: {team_name})", expanded=expanded):
                     # ✅ ユーザー編集フォーム
@@ -89,41 +123,32 @@ def user_lists():
                         st.markdown(f"**ユーザー名（ログインID）:** `{username}`")
                         st.markdown(f"**現在のチーム:** `{team_name}`")
 
-                        col1, col2 = st.columns(2)
+                        col1, col2, col3 = st.columns(3)
                         default_team_option = next((opt_team for opt_team in team_options if opt_team[0] == team_id), None)
 
-                        with col1:
-                            name_col = st.text_input(
-                                "氏名",
-                                value=name,
-                                key=f"name_{user_id}"
-                            )
+                        first_name_col = col1.text_input("名前",key=f"first_name_{user_id}", value=first_name)
+                        last_name_col = col2.text_input("苗字",key=f"last_name_{user_id}", value=last_name)
+                        name_col = col3.text_input("氏名",key=f"name_{user_id}",value=f"{name}".strip())
 
-                            selected_team_col = st.selectbox(
-                                "チームを選択",
-                                options=team_options,
-                                format_func=lambda team: team[1],  # Display team_name
-                                help="登録済みのアクティブチームのみ選択可能です（プレースホルダーチーム除外）",
-                                index=team_options.index(default_team_option) if default_team_option else 0,
-                                key=f"team_select_{i}"
-                            )
-                            is_admin_col = st.checkbox(
-                                "管理者として登録",
-                                value=bool(is_admin),
-                                key=f"is_admin_{user_id}"
-                            )
-                        with col2:
-                            username_col = st.text_input(
-                                "ユーザー名（ログインID）",
-                                value=username,
-                                key=f"username_{user_id}"
-                            )
-                            password_col = st.text_input(
-                                "パスワード",
-                                type="password",
-                                placeholder="変更する場合のみ入力",
-                                key=f"password_{user_id}"
-                            )
+                        username_col = col1.text_input("ユーザー名",key=f"username_{user_id}", value=username)
+                        password_col = col2.text_input("パスワード", type="password",key=f"password_{user_id}")
+                        email_col = col3.text_input("メールアドレス",key=f"email_{user_id}", value=email)
+
+                        phone_no_col = col1.text_input("電話番号",key=f"phone_no_{user_id}", value=phone_no)
+
+                        selected_team_col = col2.selectbox(
+                            "チームを選択",
+                            options=team_options,
+                            format_func=lambda team: team[1],  # Display team_name
+                            help="登録済みのアクティブチームのみ選択可能です（プレースホルダーチーム除外）",
+                            index=team_options.index(default_team_option) if default_team_option else 0,
+                            key=f"team_select_{user_id}"
+                        )
+                        is_admin_col = st.checkbox(
+                            "管理者として登録",
+                            value=bool(is_admin),
+                            key=f"is_admin_{user_id}"
+                        )
 
 
                         submitted = st.form_submit_button("更新する")
@@ -131,9 +156,13 @@ def user_lists():
                             # 保存処理呼び出し例
                             success, msg = update_user(
                                 id=user_id,
+                                first_name=first_name_col,
+                                last_name=last_name_col,
                                 name=name_col,
                                 username=username_col,
                                 password=password_col if password_col else None,  # 空なら変更なし
+                                email=email_col,
+                                phone_no=phone_no_col,
                                 is_admin=1 if is_admin_col else 0,
                                 created_by=adm_user_id,
                                 user_has_team_id=user_has_team_id,

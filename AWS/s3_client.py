@@ -96,7 +96,7 @@ def get_s3_sjon_files(s3,bucket_name,prefix,last_success_time_local,now_local,no
                     "aws_prefix": prefix,
                     "file_time_local": file_time_local,
                 })
-    logger.info(f"downloaded_files: {downloaded_files}")
+    # logger.info(f"downloaded_files: {downloaded_files}")
     if downloaded_files:
         for file_info in downloaded_files:
             file_path=file_info['file_path']
@@ -151,7 +151,6 @@ def get_s3_sjon_files(s3,bucket_name,prefix,last_success_time_local,now_local,no
                 }
 
                 shodan_details_array={
-                    # "shodan_id":1,
                     "agent_id":agent_id,
                     "initiation_method":initiation_method,
                     "channel":channel,
@@ -162,7 +161,6 @@ def get_s3_sjon_files(s3,bucket_name,prefix,last_success_time_local,now_local,no
                     "disconnect_ts":disconnect_ts,
                 }
                 
-                # logger.info(f"user_array: {user_array} shodan_array: {shodan_array} shodan_details_array: {shodan_details_array} batch_last_success_array: {batch_last_success_array}")
                 success=insert_to_db(user_array,shodan_array,shodan_details_array)
                 if success:
                     try:
@@ -175,21 +173,20 @@ def get_s3_sjon_files(s3,bucket_name,prefix,last_success_time_local,now_local,no
 def insert_to_db(user_array,shodan_array,shodan_details_array):
     try:
         user_id,team_id=create_user(user_array)
-        logger.info(f"user_id: {user_id}")
         shodan_array["user_id"] = user_id
-        # shodan_array["team_id"] = team_id
         team_has_prompts=get_prompts_for_team(team_id)
-        logger.info(f"team_has_prompts: {team_has_prompts}")
+        if not team_has_prompts:
+            logger.error(f"❌ No prompts found for team_id: {team_id}. Using default ENABLER team.")
+            logger.info(f"team_has_prompts: {team_has_prompts}")
         for prompt in team_has_prompts:
             # Process each prompt as needed
             team_has_prompt_id=prompt['team_has_prompt_id']
             last_shodan_id=insert_shodans_for_team(shodan_array,team_has_prompt_id)
-            logger.info(f"last_shodan_id: {last_shodan_id}")
             shodan_details_array['shodan_id']=last_shodan_id
             insert_shodan_details_for_team(shodan_details_array)
         return True
     except Exception as e:
-        logger.error(f"Error downloading file: {e}")
+        logger.error(f"Insert to db error: {e}")
         return False
 
 
