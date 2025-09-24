@@ -27,15 +27,16 @@ def initialize_s3_client(type="s3"):
 
 def create_user(user_dict):
     username = user_dict["username"]
-    password = "user123"
-    team_name="イネーブラー"
-    team_id=None
+    password = os.environ.get("USER_DEFAULT_PASSWORD", "")
+    team_name=os.environ.get("ENABLER_TEAM_NAME", "イネーブラー")
+    team_id=os.environ.get("ENABLER_TEAM_ID", 5)
     hashed_password = hash_password(password)
     team_query = "SELECT id FROM teams WHERE team_name LIKE %s"
     team_result = execute_query_with_dict_cursor(team_query, ("%"+team_name+"%",), fetch=True)
     # logger.info(f"team_result: {team_result}")
     if team_result:
         team_id = team_result[0]['id']
+
     query = "SELECT id FROM users WHERE username = %s"
     result = execute_query_with_dict_cursor(query, (username,),fetch=True)
     if result:
